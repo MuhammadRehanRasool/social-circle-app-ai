@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui.capture
+package dev.sangatai.app.ui.capture
 
 import android.Manifest
 import android.graphics.Bitmap
@@ -85,9 +85,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import dev.braindump.splitter.R
-import dev.braindump.splitter.ui.theme.AccentButton
-import dev.braindump.splitter.ui.theme.Glass
+import dev.sangatai.app.R
+import dev.sangatai.app.ui.theme.AccentButton
+import dev.sangatai.app.ui.theme.Glass
 import kotlinx.coroutines.launch
 
 /**

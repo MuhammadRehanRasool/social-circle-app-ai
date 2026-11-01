@@ -1,4 +1,4 @@
-package dev.braindump.splitter.domain.model
+package dev.sangatai.app.domain.model
 
 /** One tag on a person: how often it was noted and when. */
 data class PersonTag(

@@ -1,4 +1,4 @@
-package dev.braindump.splitter.domain.model
+package dev.sangatai.app.domain.model
 
 import kotlinx.serialization.Serializable
 

@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="window_background">#FFFDF8FD</color>
-    <color name="ic_launcher_background">#FF1B1530</color>
-    <color name="ic_launcher_foreground">#FFFFD54F</color>
-    <color name="ic_quick_background">#FF3B2A7A</color>
+    <!-- SangatAI warm palette: terracotta, honey and rose on cream. Mirrors ui/theme/Theme.kt. -->
+    <color name="window_background">#FFFFF8F2</color>
+    <color name="ic_launcher_background">#FFC2532F</color>
+    <color name="ic_launcher_foreground">#FFFFF8F2</color>
+    <color name="ic_quick_background">#FF9C4361</color>
 
-    <!-- Widget follows the wallpaper palette (Material You system colors, API 31+).
-         The translucent fills live in res/color, since they need an alpha. -->
+    <!-- The translucent widget fills live in res/color, since they need an alpha. -->
     <color name="widget_glass_stroke">#99FFFFFF</color>
     <color name="widget_highlight">#33FFFFFF</color>
-    <color name="widget_text">@android:color/system_accent1_900</color>
-    <color name="widget_text_secondary">@android:color/system_neutral2_600</color>
-    <color name="widget_accent_start">@android:color/system_accent1_500</color>
-    <color name="widget_accent_end">@android:color/system_accent3_500</color>
+    <color name="widget_text">#FF231A15</color>
+    <color name="widget_text_secondary">#FF6B5650</color>
+    <color name="widget_accent_start">#FFC2532F</color>
+    <color name="widget_accent_end">#FF9C4361</color>
     <color name="widget_mic_icon">#FFFFFFFF</color>
     <color name="widget_ripple">#33000000</color>
 </resources>

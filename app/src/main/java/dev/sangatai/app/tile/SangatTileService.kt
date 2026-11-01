@@ -1,15 +1,15 @@
-package dev.braindump.splitter.tile
+package dev.sangatai.app.tile
 
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
-import dev.braindump.splitter.R
-import dev.braindump.splitter.ui.capture.CaptureActivity
+import dev.sangatai.app.R
+import dev.sangatai.app.ui.capture.CaptureActivity
 
 /** Quick Settings tile: one tap opens the capture sheet over whatever is on screen. */
-class BrainDumpTileService : TileService() {
+class SangatTileService : TileService() {
 
     override fun onStartListening() {
         super.onStartListening()

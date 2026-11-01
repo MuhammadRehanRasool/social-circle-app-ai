@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.crm
+package dev.sangatai.app.data.crm
 
 import java.nio.ByteBuffer
 import java.nio.ByteOrder

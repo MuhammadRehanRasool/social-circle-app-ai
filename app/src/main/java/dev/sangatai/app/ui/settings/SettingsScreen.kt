@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui.settings
+package dev.sangatai.app.ui.settings
 
 import android.app.StatusBarManager
 import android.content.ComponentName
@@ -62,21 +62,21 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.braindump.splitter.R
-import dev.braindump.splitter.data.ai.AiSettings
-import dev.braindump.splitter.data.ai.AiTuning
-import dev.braindump.splitter.tile.BrainDumpTileService
-import dev.braindump.splitter.ui.capture.QuickShortcuts
-import dev.braindump.splitter.ui.dashboard.DaySection
-import dev.braindump.splitter.ui.dashboard.exportFileName
-import dev.braindump.splitter.ui.dashboard.exportMarkdown
-import dev.braindump.splitter.ui.dashboard.saveExport
-import dev.braindump.splitter.ui.dashboard.shareExport
-import dev.braindump.splitter.ui.theme.AccentButton
-import dev.braindump.splitter.ui.theme.Glass
-import dev.braindump.splitter.ui.theme.GlassBackdrop
-import dev.braindump.splitter.ui.theme.GlassIconButton
-import dev.braindump.splitter.ui.theme.GlassPanel
+import dev.sangatai.app.R
+import dev.sangatai.app.data.ai.AiSettings
+import dev.sangatai.app.data.ai.AiTuning
+import dev.sangatai.app.tile.SangatTileService
+import dev.sangatai.app.ui.capture.QuickShortcuts
+import dev.sangatai.app.ui.dashboard.DaySection
+import dev.sangatai.app.ui.dashboard.exportFileName
+import dev.sangatai.app.ui.dashboard.exportMarkdown
+import dev.sangatai.app.ui.dashboard.saveExport
+import dev.sangatai.app.ui.dashboard.shareExport
+import dev.sangatai.app.ui.theme.AccentButton
+import dev.sangatai.app.ui.theme.Glass
+import dev.sangatai.app.ui.theme.GlassBackdrop
+import dev.sangatai.app.ui.theme.GlassIconButton
+import dev.sangatai.app.ui.theme.GlassPanel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -506,7 +506,7 @@ private fun applyEdits(saved: AiTuning, edits: Map<String, String>): AiTuning {
 private fun requestAddTile(context: Context) {
     val statusBarManager = context.getSystemService(StatusBarManager::class.java) ?: return
     statusBarManager.requestAddTileService(
-        ComponentName(context, BrainDumpTileService::class.java),
+        ComponentName(context, SangatTileService::class.java),
         context.getString(R.string.tile_label),
         Icon.createWithResource(context, R.drawable.ic_tile),
         context.mainExecutor,

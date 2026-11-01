@@ -1,7 +1,7 @@
-package dev.braindump.splitter.data.local
+package dev.sangatai.app.data.local
 
 import androidx.room.TypeConverter
-import dev.braindump.splitter.domain.model.IdeaStatus
+import dev.sangatai.app.domain.model.IdeaStatus
 
 class Converters {
 

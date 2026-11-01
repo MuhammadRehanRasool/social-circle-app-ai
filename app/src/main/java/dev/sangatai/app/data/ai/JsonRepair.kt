@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.ai
+package dev.sangatai.app.data.ai
 
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json

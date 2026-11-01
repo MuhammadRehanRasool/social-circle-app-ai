@@ -1,8 +1,8 @@
-package dev.braindump.splitter.data.local.crm
+package dev.sangatai.app.data.local.crm
 
 import androidx.room.TypeConverter
-import dev.braindump.splitter.data.crm.VectorMath
-import dev.braindump.splitter.domain.model.CaptureStatus
+import dev.sangatai.app.data.crm.VectorMath
+import dev.sangatai.app.domain.model.CaptureStatus
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.SetSerializer
 import kotlinx.serialization.builtins.serializer

@@ -1,16 +1,16 @@
-package dev.braindump.splitter.ui.dashboard
+package dev.sangatai.app.ui.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.braindump.splitter.di.ApplicationScope
-import dev.braindump.splitter.domain.model.AiStatus
-import dev.braindump.splitter.domain.model.Idea
-import dev.braindump.splitter.domain.model.IdeaCategory
-import dev.braindump.splitter.domain.model.Persona
-import dev.braindump.splitter.domain.model.RefineOutcome
-import dev.braindump.splitter.domain.repository.IdeaRepository
-import dev.braindump.splitter.domain.repository.PeopleRepository
+import dev.sangatai.app.di.ApplicationScope
+import dev.sangatai.app.domain.model.AiStatus
+import dev.sangatai.app.domain.model.Idea
+import dev.sangatai.app.domain.model.IdeaCategory
+import dev.sangatai.app.domain.model.Persona
+import dev.sangatai.app.domain.model.RefineOutcome
+import dev.sangatai.app.domain.repository.IdeaRepository
+import dev.sangatai.app.domain.repository.PeopleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

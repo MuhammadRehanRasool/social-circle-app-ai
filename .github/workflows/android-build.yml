@@ -77,7 +77,7 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
             echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
-            echo "BRAINDUMP_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "SANGATAI_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
             echo "::notice::Release APK will be signed with the release keystore."
           else
             echo "::notice::Signing secrets not set. Release APK will be signed with the CI debug key."
@@ -85,9 +85,9 @@ jobs:
 
       - name: Build release APK
         env:
-          BRAINDUMP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          BRAINDUMP_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          BRAINDUMP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          SANGATAI_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          SANGATAI_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          SANGATAI_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: gradle --stacktrace --build-cache assembleRelease
 
       # Privacy gate: reads the permissions of the APK that was actually built. If any dependency

@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.ai
+package dev.sangatai.app.data.ai
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull

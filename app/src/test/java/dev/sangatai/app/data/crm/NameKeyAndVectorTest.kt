@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.crm
+package dev.sangatai.app.data.crm
 
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals

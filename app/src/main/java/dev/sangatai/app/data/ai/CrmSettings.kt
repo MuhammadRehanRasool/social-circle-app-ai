@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.ai
+package dev.sangatai.app.data.ai
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext

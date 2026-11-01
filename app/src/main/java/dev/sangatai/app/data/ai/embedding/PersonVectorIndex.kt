@@ -1,6 +1,6 @@
-package dev.braindump.splitter.data.ai.embedding
+package dev.sangatai.app.data.ai.embedding
 
-import dev.braindump.splitter.data.local.crm.PersonDao
+import dev.sangatai.app.data.local.crm.PersonDao
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.PriorityQueue

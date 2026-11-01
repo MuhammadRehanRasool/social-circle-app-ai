@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui.capture
+package dev.sangatai.app.ui.capture
 
 import android.content.Context
 import android.content.Intent
@@ -12,9 +12,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
-import dev.braindump.splitter.R
-import dev.braindump.splitter.domain.model.CaptureOutcome
-import dev.braindump.splitter.ui.theme.BrainDumpTheme
+import dev.sangatai.app.R
+import dev.sangatai.app.domain.model.CaptureOutcome
+import dev.sangatai.app.ui.theme.SangatTheme
 
 /** Transparent host for [CaptureSheet], launched from the tile and launcher shortcuts. */
 @AndroidEntryPoint
@@ -27,7 +27,7 @@ class CaptureActivity : ComponentActivity() {
         enableEdgeToEdge()
         val startWithVoice = intent.getBooleanExtra(EXTRA_START_WITH_VOICE, false)
         setContent {
-            BrainDumpTheme {
+            SangatTheme {
                 val state by viewModel.state.collectAsStateWithLifecycle()
 
                 LaunchedEffect(state) {
@@ -60,7 +60,7 @@ class CaptureActivity : ComponentActivity() {
     }
 
     companion object {
-        const val ACTION_CAPTURE = "dev.braindump.splitter.action.CAPTURE"
+        const val ACTION_CAPTURE = "dev.sangatai.app.action.CAPTURE"
         const val EXTRA_START_WITH_VOICE = "start_with_voice"
 
         fun intent(context: Context, startWithVoice: Boolean = false): Intent =

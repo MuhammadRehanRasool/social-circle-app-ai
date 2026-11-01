@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.security.MessageDigest
 
 plugins {
     alias(libs.plugins.android.application)
@@ -11,21 +12,21 @@ plugins {
 
 // Release signing comes from CI secrets. When they are absent the release build is
 // signed with the debug key so the optimized APK is still installable.
-val releaseKeystorePath: String? = System.getenv("BRAINDUMP_KEYSTORE_PATH")
-val releaseKeystorePassword: String? = System.getenv("BRAINDUMP_KEYSTORE_PASSWORD")
-val releaseKeyAlias: String? = System.getenv("BRAINDUMP_KEY_ALIAS")
-val releaseKeyPassword: String? = System.getenv("BRAINDUMP_KEY_PASSWORD")
+val releaseKeystorePath: String? = System.getenv("SANGATAI_KEYSTORE_PATH")
+val releaseKeystorePassword: String? = System.getenv("SANGATAI_KEYSTORE_PASSWORD")
+val releaseKeyAlias: String? = System.getenv("SANGATAI_KEY_ALIAS")
+val releaseKeyPassword: String? = System.getenv("SANGATAI_KEY_PASSWORD")
 val hasReleaseSigning = listOf(releaseKeystorePath, releaseKeystorePassword, releaseKeyAlias, releaseKeyPassword)
     .all { !it.isNullOrBlank() } && file(releaseKeystorePath!!).exists()
 
 val ciBuildNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
 
 android {
-    namespace = "dev.braindump.splitter"
+    namespace = "dev.sangatai.app"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.braindump.splitter"
+        applicationId = "dev.sangatai.app"
         minSdk = 31 // on-device SpeechRecognizer floor
         targetSdk = 35
         versionCode = ciBuildNumber
@@ -123,7 +124,7 @@ val verifyEmbedderModel by tasks.registering {
     inputs.file(embedderModel)
     doLast {
         val bytes = embedderModel.asFile.readBytes()
-        val digest = java.security.MessageDigest.getInstance("SHA-256").digest(bytes)
+        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
             .joinToString("") { "%02x".format(it) }
         check(digest == embedderModelSha256) {
             "universal_sentence_encoder.tflite has SHA-256 $digest, expected $embedderModelSha256"

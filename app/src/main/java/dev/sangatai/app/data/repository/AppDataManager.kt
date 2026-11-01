@@ -1,19 +1,19 @@
-package dev.braindump.splitter.data.repository
+package dev.sangatai.app.data.repository
 
 import android.content.Context
 import androidx.room.withTransaction
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dev.braindump.splitter.data.ai.AICoreManager
-import dev.braindump.splitter.data.ai.AiSettings
-import dev.braindump.splitter.data.ai.AiTuning
-import dev.braindump.splitter.data.ai.CrmSettings
-import dev.braindump.splitter.data.ai.CrmTuning
-import dev.braindump.splitter.data.ai.PersonaStore
-import dev.braindump.splitter.data.ai.embedding.PersonVectorIndex
-import dev.braindump.splitter.data.ai.embedding.TextEmbeddingEngine
-import dev.braindump.splitter.data.local.BrainDumpDatabase
-import dev.braindump.splitter.data.local.crm.CrmJson
-import dev.braindump.splitter.domain.model.Persona
+import dev.sangatai.app.data.ai.AICoreManager
+import dev.sangatai.app.data.ai.AiSettings
+import dev.sangatai.app.data.ai.AiTuning
+import dev.sangatai.app.data.ai.CrmSettings
+import dev.sangatai.app.data.ai.CrmTuning
+import dev.sangatai.app.data.ai.PersonaStore
+import dev.sangatai.app.data.ai.embedding.PersonVectorIndex
+import dev.sangatai.app.data.ai.embedding.TextEmbeddingEngine
+import dev.sangatai.app.data.local.SangatDatabase
+import dev.sangatai.app.data.local.crm.CrmJson
+import dev.sangatai.app.domain.model.Persona
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -32,7 +32,7 @@ import javax.inject.Singleton
 
 /** One file the app keeps on the phone, for the "what's stored" view. */
 data class StoredFile(
-    /** Relative to the app's private data folder, e.g. "databases/braindump.db". */
+    /** Relative to the app's private data folder, e.g. "databases/sangatai.db". */
     val path: String,
     val bytes: Long,
     /** Who writes it: this app, or a library it uses. */
@@ -54,7 +54,7 @@ enum class WipeScope {
 @Singleton
 class AppDataManager @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val db: BrainDumpDatabase,
+    private val db: SangatDatabase,
     private val ai: AICoreManager,
     private val aiSettings: AiSettings,
     private val personaStore: PersonaStore,
@@ -86,7 +86,7 @@ class AppDataManager @Inject constructor(
         }
         val document = run {
             buildJsonObject {
-                put("format", "braindump-export")
+                put("format", "sangatai-export")
                 put("formatVersion", EXPORT_VERSION)
                 put("databaseVersion", DATABASE_VERSION)
                 put("exportedAt", System.currentTimeMillis())
@@ -237,11 +237,11 @@ class AppDataManager @Inject constructor(
     }
 
     private class Snapshot(
-        val people: List<dev.braindump.splitter.data.local.crm.PersonEntity>,
-        val captures: List<dev.braindump.splitter.data.local.crm.CaptureEntity>,
-        val interactions: List<dev.braindump.splitter.data.local.crm.InteractionLogEntity>,
-        val connections: List<dev.braindump.splitter.data.local.crm.ConnectionEntity>,
-        val notes: List<dev.braindump.splitter.data.local.IdeaEntity>,
+        val people: List<dev.sangatai.app.data.local.crm.PersonEntity>,
+        val captures: List<dev.sangatai.app.data.local.crm.CaptureEntity>,
+        val interactions: List<dev.sangatai.app.data.local.crm.InteractionLogEntity>,
+        val connections: List<dev.sangatai.app.data.local.crm.ConnectionEntity>,
+        val notes: List<dev.sangatai.app.data.local.IdeaEntity>,
     )
 
     private fun strings(values: Collection<String>): JsonArray = JsonArray(values.map { JsonPrimitive(it) })
@@ -260,11 +260,11 @@ class AppDataManager @Inject constructor(
     }
 
     private fun ownerOf(path: String): String = when {
-        path.startsWith("databases/${BrainDumpDatabase.NAME}") -> "BrainDump: notes and social graph"
+        path.startsWith("databases/${SangatDatabase.NAME}") -> "SangatAI: notes and social graph"
         path.startsWith("databases/$DATATRANSPORT_DB") -> "ML Kit / MediaPipe: queued usage metrics (never sent, no network access)"
-        path.startsWith("shared_prefs/${CrmSettings.PREFS_NAME}") -> "BrainDump: social graph settings"
-        path.startsWith("shared_prefs/ai_settings") -> "BrainDump: note settings"
-        path.startsWith("shared_prefs/persona") -> "BrainDump: writing persona"
+        path.startsWith("shared_prefs/${CrmSettings.PREFS_NAME}") -> "SangatAI: social graph settings"
+        path.startsWith("shared_prefs/ai_settings") -> "SangatAI: note settings"
+        path.startsWith("shared_prefs/persona") -> "SangatAI: writing persona"
         path.startsWith("cache/") -> "Cache"
         path.startsWith("code_cache/") -> "Android runtime"
         path.startsWith("app_webview/") -> "WebView"

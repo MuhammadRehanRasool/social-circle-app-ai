@@ -1,11 +1,11 @@
-package dev.braindump.splitter.data.local.crm
+package dev.sangatai.app.data.local.crm
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import dev.braindump.splitter.domain.model.CaptureStatus
+import dev.sangatai.app.domain.model.CaptureStatus
 
 /**
  * A person in the user's network. Tags are open-ended: Gemini Nano invents them from rants,
@@ -26,7 +26,7 @@ data class PersonEntity(
     /** Display name; the longest form heard, unless the user renamed them ([nameLocked]). */
     @ColumnInfo(name = "name")
     val name: String,
-    /** [dev.braindump.splitter.data.crm.NameKey] of [name]. */
+    /** [dev.sangatai.app.data.crm.NameKey] of [name]. */
     @ColumnInfo(name = "name_key")
     val nameKey: String,
     /** Other name keys that resolved to this person ("ali" for "Ali Khan"). */

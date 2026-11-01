@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui.dashboard
+package dev.sangatai.app.ui.dashboard
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -34,7 +34,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import dev.braindump.splitter.ui.theme.Glass
+import dev.sangatai.app.ui.theme.Glass
 
 /**
  * Renders the Markdown Gemini Nano writes: headings, paragraphs, bullet, numbered and

@@ -1,14 +1,14 @@
-package dev.braindump.splitter.ui.settings
+package dev.sangatai.app.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.braindump.splitter.data.ai.AiSettings
-import dev.braindump.splitter.data.ai.AiTuning
-import dev.braindump.splitter.di.ApplicationScope
-import dev.braindump.splitter.domain.repository.IdeaRepository
-import dev.braindump.splitter.ui.dashboard.DaySection
-import dev.braindump.splitter.ui.dashboard.groupByDay
+import dev.sangatai.app.data.ai.AiSettings
+import dev.sangatai.app.data.ai.AiTuning
+import dev.sangatai.app.di.ApplicationScope
+import dev.sangatai.app.domain.repository.IdeaRepository
+import dev.sangatai.app.ui.dashboard.DaySection
+import dev.sangatai.app.ui.dashboard.groupByDay
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted

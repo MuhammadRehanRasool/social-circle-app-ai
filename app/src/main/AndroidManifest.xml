@@ -28,7 +28,7 @@
     </queries>
 
     <application
-        android:name=".BrainDumpApp"
+        android:name=".SangatApp"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="false"
@@ -37,7 +37,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.BrainDump"
+        android:theme="@style/Theme.Sangat"
         tools:targetApi="35">
 
         <activity
@@ -64,10 +64,10 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:taskAffinity=""
-            android:theme="@style/Theme.BrainDump.Capture"
+            android:theme="@style/Theme.Sangat.Capture"
             android:windowSoftInputMode="adjustResize|stateVisible">
             <intent-filter>
-                <action android:name="dev.braindump.splitter.action.CAPTURE" />
+                <action android:name="dev.sangatai.app.action.CAPTURE" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
@@ -85,7 +85,7 @@
         </receiver>
 
         <service
-            android:name=".tile.BrainDumpTileService"
+            android:name=".tile.SangatTileService"
             android:exported="true"
             android:icon="@drawable/ic_tile"
             android:label="@string/tile_label"

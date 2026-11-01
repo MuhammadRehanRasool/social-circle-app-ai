@@ -1,4 +1,4 @@
-package dev.braindump.splitter.di
+package dev.sangatai.app.di
 
 import android.content.Context
 import androidx.room.Room
@@ -8,18 +8,18 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import dev.braindump.splitter.data.ai.embedding.MediaPipeTextEmbeddingEngine
-import dev.braindump.splitter.data.ai.embedding.TextEmbeddingEngine
-import dev.braindump.splitter.data.local.BrainDumpDatabase
-import dev.braindump.splitter.data.local.IdeaDao
-import dev.braindump.splitter.data.local.crm.CaptureDao
-import dev.braindump.splitter.data.local.crm.ConnectionDao
-import dev.braindump.splitter.data.local.crm.InteractionLogDao
-import dev.braindump.splitter.data.local.crm.PersonDao
-import dev.braindump.splitter.data.repository.IdeaRepositoryImpl
-import dev.braindump.splitter.data.repository.PeopleRepositoryImpl
-import dev.braindump.splitter.domain.repository.IdeaRepository
-import dev.braindump.splitter.domain.repository.PeopleRepository
+import dev.sangatai.app.data.ai.embedding.MediaPipeTextEmbeddingEngine
+import dev.sangatai.app.data.ai.embedding.TextEmbeddingEngine
+import dev.sangatai.app.data.local.SangatDatabase
+import dev.sangatai.app.data.local.IdeaDao
+import dev.sangatai.app.data.local.crm.CaptureDao
+import dev.sangatai.app.data.local.crm.ConnectionDao
+import dev.sangatai.app.data.local.crm.InteractionLogDao
+import dev.sangatai.app.data.local.crm.PersonDao
+import dev.sangatai.app.data.repository.IdeaRepositoryImpl
+import dev.sangatai.app.data.repository.PeopleRepositoryImpl
+import dev.sangatai.app.domain.repository.IdeaRepository
+import dev.sangatai.app.domain.repository.PeopleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,31 +37,31 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): BrainDumpDatabase =
-        Room.databaseBuilder(context, BrainDumpDatabase::class.java, BrainDumpDatabase.NAME)
+    fun provideDatabase(@ApplicationContext context: Context): SangatDatabase =
+        Room.databaseBuilder(context, SangatDatabase::class.java, SangatDatabase.NAME)
             .addMigrations(
-                BrainDumpDatabase.MIGRATION_1_2,
-                BrainDumpDatabase.MIGRATION_2_3,
-                BrainDumpDatabase.MIGRATION_3_4,
-                BrainDumpDatabase.MIGRATION_4_5,
+                SangatDatabase.MIGRATION_1_2,
+                SangatDatabase.MIGRATION_2_3,
+                SangatDatabase.MIGRATION_3_4,
+                SangatDatabase.MIGRATION_4_5,
             )
-            .addCallback(BrainDumpDatabase.SECURE_DELETE)
+            .addCallback(SangatDatabase.SECURE_DELETE)
             .build()
 
     @Provides
-    fun provideIdeaDao(database: BrainDumpDatabase): IdeaDao = database.ideaDao()
+    fun provideIdeaDao(database: SangatDatabase): IdeaDao = database.ideaDao()
 
     @Provides
-    fun providePersonDao(database: BrainDumpDatabase): PersonDao = database.personDao()
+    fun providePersonDao(database: SangatDatabase): PersonDao = database.personDao()
 
     @Provides
-    fun provideCaptureDao(database: BrainDumpDatabase): CaptureDao = database.captureDao()
+    fun provideCaptureDao(database: SangatDatabase): CaptureDao = database.captureDao()
 
     @Provides
-    fun provideInteractionLogDao(database: BrainDumpDatabase): InteractionLogDao = database.interactionLogDao()
+    fun provideInteractionLogDao(database: SangatDatabase): InteractionLogDao = database.interactionLogDao()
 
     @Provides
-    fun provideConnectionDao(database: BrainDumpDatabase): ConnectionDao = database.connectionDao()
+    fun provideConnectionDao(database: SangatDatabase): ConnectionDao = database.connectionDao()
 
     @Provides
     @Singleton

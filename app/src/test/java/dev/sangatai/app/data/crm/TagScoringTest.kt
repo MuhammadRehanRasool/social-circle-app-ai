@@ -1,8 +1,8 @@
-package dev.braindump.splitter.data.crm
+package dev.sangatai.app.data.crm
 
-import dev.braindump.splitter.data.local.crm.StringSet
-import dev.braindump.splitter.data.local.crm.TagMap
-import dev.braindump.splitter.data.local.crm.TagStat
+import dev.sangatai.app.data.local.crm.StringSet
+import dev.sangatai.app.data.local.crm.TagMap
+import dev.sangatai.app.data.local.crm.TagStat
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

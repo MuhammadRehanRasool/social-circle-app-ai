@@ -1,13 +1,13 @@
-package dev.braindump.splitter.data.local
+package dev.sangatai.app.data.local
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import dev.braindump.splitter.domain.model.Idea
-import dev.braindump.splitter.domain.model.IdeaCategory
-import dev.braindump.splitter.domain.model.IdeaStatus
-import dev.braindump.splitter.domain.model.RefineTurn
+import dev.sangatai.app.domain.model.Idea
+import dev.sangatai.app.domain.model.IdeaCategory
+import dev.sangatai.app.domain.model.IdeaStatus
+import dev.sangatai.app.domain.model.RefineTurn
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 

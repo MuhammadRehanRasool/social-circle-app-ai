@@ -1,11 +1,11 @@
-package dev.braindump.splitter.data.ai.embedding
+package dev.sangatai.app.data.ai.embedding
 
 import android.content.Context
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.core.Delegate
 import com.google.mediapipe.tasks.text.textembedder.TextEmbedder
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dev.braindump.splitter.data.crm.VectorMath
+import dev.sangatai.app.data.crm.VectorMath
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow

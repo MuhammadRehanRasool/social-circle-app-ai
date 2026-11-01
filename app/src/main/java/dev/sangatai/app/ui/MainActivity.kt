@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui
+package dev.sangatai.app.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -17,9 +17,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import dagger.hilt.android.AndroidEntryPoint
-import dev.braindump.splitter.ui.dashboard.DashboardRoute
-import dev.braindump.splitter.ui.settings.SettingsRoute
-import dev.braindump.splitter.ui.theme.BrainDumpTheme
+import dev.sangatai.app.ui.dashboard.DashboardRoute
+import dev.sangatai.app.ui.settings.SettingsRoute
+import dev.sangatai.app.ui.theme.SangatTheme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            BrainDumpTheme {
+            SangatTheme {
                 var settingsOpen by rememberSaveable { mutableStateOf(false) }
                 // Keeps the dashboard's filter, timeline mode and scroll while settings is open.
                 val saveableState = rememberSaveableStateHolder()

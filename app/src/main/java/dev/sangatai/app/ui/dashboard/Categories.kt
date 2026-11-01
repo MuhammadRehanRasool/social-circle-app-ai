@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui.dashboard
+package dev.sangatai.app.ui.dashboard
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
@@ -14,20 +14,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import dev.braindump.splitter.R
-import dev.braindump.splitter.domain.model.IdeaCategory
+import dev.sangatai.app.R
+import dev.sangatai.app.domain.model.IdeaCategory
 
 /** iOS system hues, readable on both the light and dark glass. */
 internal val IdeaCategory.color: Color
     get() = when (this) {
-        IdeaCategory.PERSONAL -> Color(0xFFFF375F)
-        IdeaCategory.WORK -> Color(0xFF0A84FF)
-        IdeaCategory.HEALTH -> Color(0xFF30D158)
-        IdeaCategory.LEARNING -> Color(0xFFFF9F0A)
-        IdeaCategory.MONEY -> Color(0xFF40C8E0)
-        IdeaCategory.CREATIVE -> Color(0xFFBF5AF2)
-        IdeaCategory.TECH -> Color(0xFF5E5CE6)
-        IdeaCategory.OTHER -> Color(0xFF8E8E93)
+        IdeaCategory.PERSONAL -> Color(0xFFD0587A)
+        IdeaCategory.WORK -> Color(0xFF3F7C85)
+        IdeaCategory.HEALTH -> Color(0xFF5E9C6A)
+        IdeaCategory.LEARNING -> Color(0xFFD99A2B)
+        IdeaCategory.MONEY -> Color(0xFF8A8F3C)
+        IdeaCategory.CREATIVE -> Color(0xFF9A5BA8)
+        IdeaCategory.TECH -> Color(0xFF4F6FA8)
+        IdeaCategory.OTHER -> Color(0xFF8C7E77)
     }
 
 internal val IdeaCategory.emoji: String

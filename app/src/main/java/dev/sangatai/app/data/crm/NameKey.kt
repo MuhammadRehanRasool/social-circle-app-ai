@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.crm
+package dev.sangatai.app.data.crm
 
 import java.text.Normalizer
 import java.util.Locale

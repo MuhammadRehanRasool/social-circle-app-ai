@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.local.crm
+package dev.sangatai.app.data.local.crm
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

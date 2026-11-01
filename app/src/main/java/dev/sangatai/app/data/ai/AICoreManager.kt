@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.ai
+package dev.sangatai.app.data.ai
 
 import android.graphics.Bitmap
 import com.google.mlkit.genai.common.DownloadStatus
@@ -14,10 +14,10 @@ import com.google.mlkit.genai.prompt.TextPart
 import com.google.mlkit.genai.prompt.generateContentRequest
 import com.google.mlkit.genai.prompt.generationConfig
 import com.google.mlkit.genai.prompt.modelConfig
-import dev.braindump.splitter.domain.model.AiStatus
-import dev.braindump.splitter.domain.model.IdeaCategory
-import dev.braindump.splitter.domain.model.Persona
-import dev.braindump.splitter.domain.model.PersonaAspect
+import dev.sangatai.app.domain.model.AiStatus
+import dev.sangatai.app.domain.model.IdeaCategory
+import dev.sangatai.app.domain.model.Persona
+import dev.sangatai.app.domain.model.PersonaAspect
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

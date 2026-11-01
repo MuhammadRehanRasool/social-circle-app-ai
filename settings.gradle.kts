@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BrainDumpTaskSplitter"
+rootProject.name = "SangatAI"
 include(":app")

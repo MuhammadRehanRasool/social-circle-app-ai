@@ -1,10 +1,10 @@
-package dev.braindump.splitter.ui.capture
+package dev.sangatai.app.ui.capture
 
 import android.content.Context
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
-import dev.braindump.splitter.R
+import dev.sangatai.app.R
 
 /** Home-screen icons that open the capture sheet directly, skipping the dashboard. */
 object QuickShortcuts {

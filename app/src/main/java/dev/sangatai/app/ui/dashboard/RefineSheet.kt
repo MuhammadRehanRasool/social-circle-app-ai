@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui.dashboard
+package dev.sangatai.app.ui.dashboard
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
@@ -56,16 +56,16 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
-import dev.braindump.splitter.R
-import dev.braindump.splitter.domain.model.Idea
-import dev.braindump.splitter.ui.capture.MicButton
-import dev.braindump.splitter.ui.capture.OnDeviceTag
-import dev.braindump.splitter.ui.capture.SheetHandle
-import dev.braindump.splitter.ui.capture.rememberVoiceToggle
-import dev.braindump.splitter.ui.capture.rememberVoiceTranscriber
-import dev.braindump.splitter.ui.capture.withLiveWords
-import dev.braindump.splitter.ui.theme.AccentButton
-import dev.braindump.splitter.ui.theme.Glass
+import dev.sangatai.app.R
+import dev.sangatai.app.domain.model.Idea
+import dev.sangatai.app.ui.capture.MicButton
+import dev.sangatai.app.ui.capture.OnDeviceTag
+import dev.sangatai.app.ui.capture.SheetHandle
+import dev.sangatai.app.ui.capture.rememberVoiceToggle
+import dev.sangatai.app.ui.capture.rememberVoiceTranscriber
+import dev.sangatai.app.ui.capture.withLiveWords
+import dev.sangatai.app.ui.theme.AccentButton
+import dev.sangatai.app.ui.theme.Glass
 
 /**
  * A chat about one idea: the note sits on top and rewrites itself live as each request

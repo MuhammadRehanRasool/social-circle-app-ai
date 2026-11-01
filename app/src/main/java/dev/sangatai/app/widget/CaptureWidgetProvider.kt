@@ -1,4 +1,4 @@
-package dev.braindump.splitter.widget
+package dev.sangatai.app.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -8,8 +8,8 @@ import android.content.Intent
 import android.util.SizeF
 import android.widget.RemoteViews
 import androidx.annotation.LayoutRes
-import dev.braindump.splitter.R
-import dev.braindump.splitter.ui.capture.CaptureActivity
+import dev.sangatai.app.R
+import dev.sangatai.app.ui.capture.CaptureActivity
 
 /**
  * Home-screen capture widget that fits any size, from a single mic button up to a full card:

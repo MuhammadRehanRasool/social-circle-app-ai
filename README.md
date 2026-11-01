@@ -1,6 +1,6 @@
-# dumpd
+# SangatAI
 
-**BrainDump.** Dump rough thoughts by voice or text in one tap. Gemini Nano, the copy that's already on your phone, rewrites them as a clear, polished Markdown note with a title and a category. The app has no INTERNET permission.
+**SangatAI** (*sangat*: the company you keep) is a private, on-device AI CRM for your social circle. It still carries the capture flow from its note-taking roots: dump rough thoughts by voice or text in one tap. Gemini Nano, the copy that's already on your phone, rewrites them as a clear, polished Markdown note with a title and a category. The app has no INTERNET permission.
 
 ## How it flows
 

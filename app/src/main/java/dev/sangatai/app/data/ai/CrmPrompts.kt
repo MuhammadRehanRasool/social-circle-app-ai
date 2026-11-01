@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.ai
+package dev.sangatai.app.data.ai
 
 /**
  * The built-in Gemini Nano instructions for the social graph. Both are user-editable in

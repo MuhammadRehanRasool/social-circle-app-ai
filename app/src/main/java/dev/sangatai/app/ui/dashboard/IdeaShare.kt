@@ -1,11 +1,11 @@
-package dev.braindump.splitter.ui.dashboard
+package dev.sangatai.app.ui.dashboard
 
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import dev.braindump.splitter.R
-import dev.braindump.splitter.domain.model.Idea
-import dev.braindump.splitter.domain.model.IdeaStatus
+import dev.sangatai.app.R
+import dev.sangatai.app.domain.model.Idea
+import dev.sangatai.app.domain.model.IdeaStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -98,7 +98,7 @@ internal suspend fun saveExport(context: Context, uri: Uri, markdown: String): B
     }.getOrDefault(false)
 }
 
-internal fun exportFileName(): String = "braindump-${LocalDate.now()}.md"
+internal fun exportFileName(): String = "sangatai-${LocalDate.now()}.md"
 
 // Intent extras travel through a ~1 MB binder buffer shared with the rest of the transaction.
 private const val MAX_SHARE_CHARS = 100_000

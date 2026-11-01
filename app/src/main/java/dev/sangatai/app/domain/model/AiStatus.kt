@@ -1,4 +1,4 @@
-package dev.braindump.splitter.domain.model
+package dev.sangatai.app.domain.model
 
 /** Readiness of the on-device model, surfaced to the dashboard. */
 sealed interface AiStatus {

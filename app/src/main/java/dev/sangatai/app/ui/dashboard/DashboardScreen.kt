@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui.dashboard
+package dev.sangatai.app.ui.dashboard
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -69,15 +69,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.braindump.splitter.R
-import dev.braindump.splitter.domain.model.AiStatus
-import dev.braindump.splitter.domain.model.IdeaCategory
-import dev.braindump.splitter.ui.capture.CaptureSheet
-import dev.braindump.splitter.ui.theme.AccentButton
-import dev.braindump.splitter.ui.theme.Glass
-import dev.braindump.splitter.ui.theme.GlassBackdrop
-import dev.braindump.splitter.ui.theme.GlassIconButton
-import dev.braindump.splitter.ui.theme.GlassPanel
+import dev.sangatai.app.R
+import dev.sangatai.app.domain.model.AiStatus
+import dev.sangatai.app.domain.model.IdeaCategory
+import dev.sangatai.app.ui.capture.CaptureSheet
+import dev.sangatai.app.ui.theme.AccentButton
+import dev.sangatai.app.ui.theme.Glass
+import dev.sangatai.app.ui.theme.GlassBackdrop
+import dev.sangatai.app.ui.theme.GlassIconButton
+import dev.sangatai.app.ui.theme.GlassPanel
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter

@@ -1,11 +1,11 @@
-package dev.braindump.splitter.domain.repository
+package dev.sangatai.app.domain.repository
 
-import dev.braindump.splitter.domain.model.AiStatus
-import dev.braindump.splitter.domain.model.CaptureOutcome
-import dev.braindump.splitter.domain.model.Idea
-import dev.braindump.splitter.domain.model.IdeaCategory
-import dev.braindump.splitter.domain.model.Persona
-import dev.braindump.splitter.domain.model.RefineOutcome
+import dev.sangatai.app.domain.model.AiStatus
+import dev.sangatai.app.domain.model.CaptureOutcome
+import dev.sangatai.app.domain.model.Idea
+import dev.sangatai.app.domain.model.IdeaCategory
+import dev.sangatai.app.domain.model.Persona
+import dev.sangatai.app.domain.model.RefineOutcome
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 

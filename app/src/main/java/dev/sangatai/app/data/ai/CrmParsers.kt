@@ -1,9 +1,9 @@
-package dev.braindump.splitter.data.ai
+package dev.sangatai.app.data.ai
 
-import dev.braindump.splitter.data.ai.JsonFields.field
-import dev.braindump.splitter.data.ai.JsonFields.hasAny
-import dev.braindump.splitter.data.crm.NameKey
-import dev.braindump.splitter.data.crm.TagScoring
+import dev.sangatai.app.data.ai.JsonFields.field
+import dev.sangatai.app.data.ai.JsonFields.hasAny
+import dev.sangatai.app.data.crm.NameKey
+import dev.sangatai.app.data.crm.TagScoring
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject

@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.local
+package dev.sangatai.app.data.local
 
 import android.content.ContentValues
 import android.database.sqlite.SQLiteDatabase
@@ -7,15 +7,15 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import dev.braindump.splitter.data.local.crm.CaptureDao
-import dev.braindump.splitter.data.local.crm.CaptureEntity
-import dev.braindump.splitter.data.local.crm.ConnectionDao
-import dev.braindump.splitter.data.local.crm.ConnectionEntity
-import dev.braindump.splitter.data.local.crm.CrmConverters
-import dev.braindump.splitter.data.local.crm.InteractionLogDao
-import dev.braindump.splitter.data.local.crm.InteractionLogEntity
-import dev.braindump.splitter.data.local.crm.PersonDao
-import dev.braindump.splitter.data.local.crm.PersonEntity
+import dev.sangatai.app.data.local.crm.CaptureDao
+import dev.sangatai.app.data.local.crm.CaptureEntity
+import dev.sangatai.app.data.local.crm.ConnectionDao
+import dev.sangatai.app.data.local.crm.ConnectionEntity
+import dev.sangatai.app.data.local.crm.CrmConverters
+import dev.sangatai.app.data.local.crm.InteractionLogDao
+import dev.sangatai.app.data.local.crm.InteractionLogEntity
+import dev.sangatai.app.data.local.crm.PersonDao
+import dev.sangatai.app.data.local.crm.PersonEntity
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -32,7 +32,7 @@ import kotlinx.serialization.json.Json
     exportSchema = true,
 )
 @TypeConverters(Converters::class, CrmConverters::class)
-abstract class BrainDumpDatabase : RoomDatabase() {
+abstract class SangatDatabase : RoomDatabase() {
     abstract fun ideaDao(): IdeaDao
     abstract fun personDao(): PersonDao
     abstract fun captureDao(): CaptureDao
@@ -40,7 +40,7 @@ abstract class BrainDumpDatabase : RoomDatabase() {
     abstract fun connectionDao(): ConnectionDao
 
     companion object {
-        const val NAME = "braindump.db"
+        const val NAME = "sangatai.db"
 
         /**
          * Deleted rows are overwritten with zeros instead of lingering in free pages, so a delete

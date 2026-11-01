@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui.theme
+package dev.sangatai.app.ui.theme
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing

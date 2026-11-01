@@ -1,10 +1,10 @@
-package dev.braindump.splitter.domain.repository
+package dev.sangatai.app.domain.repository
 
-import dev.braindump.splitter.domain.model.AskOutcome
-import dev.braindump.splitter.domain.model.Capture
-import dev.braindump.splitter.domain.model.IngestOutcome
-import dev.braindump.splitter.domain.model.Person
-import dev.braindump.splitter.domain.model.PersonDetail
+import dev.sangatai.app.domain.model.AskOutcome
+import dev.sangatai.app.domain.model.Capture
+import dev.sangatai.app.domain.model.IngestOutcome
+import dev.sangatai.app.domain.model.Person
+import dev.sangatai.app.domain.model.PersonDetail
 import kotlinx.coroutines.flow.Flow
 
 /** The social graph: people, what was said about them, and who can help with what. */

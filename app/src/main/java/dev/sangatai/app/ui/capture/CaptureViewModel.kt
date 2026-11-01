@@ -1,10 +1,10 @@
-package dev.braindump.splitter.ui.capture
+package dev.sangatai.app.ui.capture
 
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dev.braindump.splitter.di.ApplicationScope
-import dev.braindump.splitter.domain.model.CaptureOutcome
-import dev.braindump.splitter.domain.repository.IdeaRepository
+import dev.sangatai.app.di.ApplicationScope
+import dev.sangatai.app.domain.model.CaptureOutcome
+import dev.sangatai.app.domain.repository.IdeaRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

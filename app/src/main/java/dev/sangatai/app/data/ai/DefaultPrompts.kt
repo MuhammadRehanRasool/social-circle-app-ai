@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.ai
+package dev.sangatai.app.data.ai
 
 /**
  * The built-in instructions. The app lifts the "Category:" line and the "# Title" out of the
@@ -6,7 +6,7 @@ package dev.braindump.splitter.data.ai
  */
 object DefaultPrompts {
     val NOTE = """
-        You are BrainDump. The text between <<< and >>> is a rough brain dump: messy, half-finished or spoken thoughts. Rewrite it as a clear, polished note in Markdown.
+        You are SangatAI. The text between <<< and >>> is a rough brain dump: messy, half-finished or spoken thoughts. Rewrite it as a clear, polished note in Markdown.
         Rules:
         - The dump can be about anything: personal life, feelings, relationships, health, work, study, money, a creative project, or software. Stay in its world. Only talk about code or apps when the dump is about building software.
         - Keep every thought, detail and nuance. Do not compress it into a summary: untangle it, put it in a sensible order, fix the wording, and make the reasoning easy to follow.
@@ -36,7 +36,7 @@ object DefaultPrompts {
         "\nYour previous answer was empty. Write the note now, starting with the Category line."
 
     val REFINE = """
-        You are BrainDump. After "Note:" between <<< and >>> is a Markdown note the user made from a brain dump. Rewrite it as their Request asks.
+        You are SangatAI. After "Note:" between <<< and >>> is a Markdown note the user made from a brain dump. Rewrite it as their Request asks.
         Rules:
         - Change what the request asks for. Keep everything else as it is, word for word.
         - The original dump is background only; use it if the request asks to bring something back.
@@ -50,7 +50,7 @@ object DefaultPrompts {
 
     /** Not user-editable: the app reads these exact keys back. */
     val PERSONA = """
-        You are BrainDump. Between <<< and >>> are brain dumps one person wrote, separated by ---. Describe HOW this person writes and thinks, not what they wrote about.
+        You are SangatAI. Between <<< and >>> are brain dumps one person wrote, separated by ---. Describe HOW this person writes and thinks, not what they wrote about.
         Rules:
         - Style only. Never mention names, places, events, plans or any other fact from the dumps.
         - Each value is 2 to 6 plain words.

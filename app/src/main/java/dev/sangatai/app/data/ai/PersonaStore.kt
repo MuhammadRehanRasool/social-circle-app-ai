@@ -1,8 +1,8 @@
-package dev.braindump.splitter.data.ai
+package dev.sangatai.app.data.ai
 
 import android.content.Context
 import dagger.hilt.android.qualifiers.ApplicationContext
-import dev.braindump.splitter.domain.model.Persona
+import dev.sangatai.app.domain.model.Persona
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

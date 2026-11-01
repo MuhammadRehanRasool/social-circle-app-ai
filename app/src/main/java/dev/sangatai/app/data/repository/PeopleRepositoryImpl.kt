@@ -1,41 +1,41 @@
-package dev.braindump.splitter.data.repository
+package dev.sangatai.app.data.repository
 
 import androidx.room.withTransaction
-import dev.braindump.splitter.data.ai.AICoreManager
-import dev.braindump.splitter.data.ai.CrmParsers
-import dev.braindump.splitter.data.ai.CrmSettings
-import dev.braindump.splitter.data.ai.CrmTuning
-import dev.braindump.splitter.data.ai.SplitException
-import dev.braindump.splitter.data.ai.embedding.PersonVectorIndex
-import dev.braindump.splitter.data.ai.embedding.TextEmbeddingEngine
-import dev.braindump.splitter.data.crm.NameKey
-import dev.braindump.splitter.data.crm.TagScoring
-import dev.braindump.splitter.data.local.BrainDumpDatabase
-import dev.braindump.splitter.data.local.crm.CaptureDao
-import dev.braindump.splitter.data.local.crm.CaptureEntity
-import dev.braindump.splitter.data.local.crm.ConnectionDao
-import dev.braindump.splitter.data.local.crm.ConnectionEntity
-import dev.braindump.splitter.data.local.crm.ConnectionRow
-import dev.braindump.splitter.data.local.crm.InteractionLogDao
-import dev.braindump.splitter.data.local.crm.InteractionLogEntity
-import dev.braindump.splitter.data.local.crm.PersonDao
-import dev.braindump.splitter.data.local.crm.PersonEntity
-import dev.braindump.splitter.data.local.crm.PersonRow
-import dev.braindump.splitter.data.local.crm.Relation
-import dev.braindump.splitter.data.local.crm.StringSet
-import dev.braindump.splitter.data.local.crm.TagMap
-import dev.braindump.splitter.data.local.crm.TagStat
-import dev.braindump.splitter.domain.model.AskOutcome
-import dev.braindump.splitter.domain.model.Capture
-import dev.braindump.splitter.domain.model.CaptureStatus
-import dev.braindump.splitter.domain.model.Connection
-import dev.braindump.splitter.domain.model.IngestOutcome
-import dev.braindump.splitter.domain.model.Interaction
-import dev.braindump.splitter.domain.model.Person
-import dev.braindump.splitter.domain.model.PersonDetail
-import dev.braindump.splitter.domain.model.PersonMatch
-import dev.braindump.splitter.domain.model.PersonTag
-import dev.braindump.splitter.domain.repository.PeopleRepository
+import dev.sangatai.app.data.ai.AICoreManager
+import dev.sangatai.app.data.ai.CrmParsers
+import dev.sangatai.app.data.ai.CrmSettings
+import dev.sangatai.app.data.ai.CrmTuning
+import dev.sangatai.app.data.ai.SplitException
+import dev.sangatai.app.data.ai.embedding.PersonVectorIndex
+import dev.sangatai.app.data.ai.embedding.TextEmbeddingEngine
+import dev.sangatai.app.data.crm.NameKey
+import dev.sangatai.app.data.crm.TagScoring
+import dev.sangatai.app.data.local.SangatDatabase
+import dev.sangatai.app.data.local.crm.CaptureDao
+import dev.sangatai.app.data.local.crm.CaptureEntity
+import dev.sangatai.app.data.local.crm.ConnectionDao
+import dev.sangatai.app.data.local.crm.ConnectionEntity
+import dev.sangatai.app.data.local.crm.ConnectionRow
+import dev.sangatai.app.data.local.crm.InteractionLogDao
+import dev.sangatai.app.data.local.crm.InteractionLogEntity
+import dev.sangatai.app.data.local.crm.PersonDao
+import dev.sangatai.app.data.local.crm.PersonEntity
+import dev.sangatai.app.data.local.crm.PersonRow
+import dev.sangatai.app.data.local.crm.Relation
+import dev.sangatai.app.data.local.crm.StringSet
+import dev.sangatai.app.data.local.crm.TagMap
+import dev.sangatai.app.data.local.crm.TagStat
+import dev.sangatai.app.domain.model.AskOutcome
+import dev.sangatai.app.domain.model.Capture
+import dev.sangatai.app.domain.model.CaptureStatus
+import dev.sangatai.app.domain.model.Connection
+import dev.sangatai.app.domain.model.IngestOutcome
+import dev.sangatai.app.domain.model.Interaction
+import dev.sangatai.app.domain.model.Person
+import dev.sangatai.app.domain.model.PersonDetail
+import dev.sangatai.app.domain.model.PersonMatch
+import dev.sangatai.app.domain.model.PersonTag
+import dev.sangatai.app.domain.repository.PeopleRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -47,7 +47,7 @@ import javax.inject.Singleton
 
 @Singleton
 class PeopleRepositoryImpl @Inject constructor(
-    private val db: BrainDumpDatabase,
+    private val db: SangatDatabase,
     private val people: PersonDao,
     private val logs: InteractionLogDao,
     private val edges: ConnectionDao,

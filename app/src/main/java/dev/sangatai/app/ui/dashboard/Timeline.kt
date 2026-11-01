@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui.dashboard
+package dev.sangatai.app.ui.dashboard
 
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -63,12 +63,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import dev.braindump.splitter.R
-import dev.braindump.splitter.domain.model.Idea
-import dev.braindump.splitter.domain.model.IdeaCategory
-import dev.braindump.splitter.ui.theme.Glass
-import dev.braindump.splitter.ui.theme.GlassPanel
-import dev.braindump.splitter.ui.theme.rememberPressScale
+import dev.sangatai.app.R
+import dev.sangatai.app.domain.model.Idea
+import dev.sangatai.app.domain.model.IdeaCategory
+import dev.sangatai.app.ui.theme.Glass
+import dev.sangatai.app.ui.theme.GlassPanel
+import dev.sangatai.app.ui.theme.rememberPressScale
 import java.time.LocalDate
 import java.time.Month
 import java.time.YearMonth

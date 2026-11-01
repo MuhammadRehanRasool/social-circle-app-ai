@@ -1,4 +1,4 @@
-package dev.braindump.splitter.ui.capture
+package dev.sangatai.app.ui.capture
 
 import android.content.Context
 import android.content.Intent
@@ -29,7 +29,7 @@ import com.google.mlkit.genai.speechrecognition.SpeechRecognizerOptions
 import com.google.mlkit.genai.speechrecognition.SpeechRecognizerResponse
 import com.google.mlkit.genai.speechrecognition.speechRecognizerOptions
 import com.google.mlkit.genai.speechrecognition.speechRecognizerRequest
-import dev.braindump.splitter.R
+import dev.sangatai.app.R
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job

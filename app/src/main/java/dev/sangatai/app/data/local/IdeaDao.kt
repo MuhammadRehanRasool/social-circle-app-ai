@@ -1,4 +1,4 @@
-package dev.braindump.splitter.data.local
+package dev.sangatai.app.data.local
 
 import androidx.room.Dao
 import androidx.room.Insert

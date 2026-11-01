@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="window_background">#FF141218</color>
+    <color name="window_background">#FF1C1411</color>
 
     <color name="widget_glass_stroke">#1FFFFFFF</color>
     <color name="widget_highlight">#14FFFFFF</color>
-    <color name="widget_text">@android:color/system_accent1_100</color>
-    <color name="widget_text_secondary">@android:color/system_neutral2_300</color>
-    <color name="widget_accent_start">@android:color/system_accent1_300</color>
-    <color name="widget_accent_end">@android:color/system_accent3_300</color>
-    <color name="widget_mic_icon">@android:color/system_accent1_900</color>
+    <color name="widget_text">#FFF1DFD8</color>
+    <color name="widget_text_secondary">#FFD8C2BA</color>
+    <color name="widget_accent_start">#FFFFB59C</color>
+    <color name="widget_accent_end">#FFFFB1C6</color>
+    <color name="widget_mic_icon">#FF5C1A03</color>
     <color name="widget_ripple">#33FFFFFF</color>
 </resources>

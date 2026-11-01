@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">BrainDump</string>
+    <string name="app_name">SangatAI</string>
 
-    <string name="tile_label">BrainDump</string>
+    <string name="tile_label">SangatAI</string>
     <string name="tile_subtitle">Dump a thought</string>
 
     <string name="shortcut_voice_short">Voice dump</string>
@@ -79,7 +79,7 @@ All on-device. Your dumps never touch the cloud.</string>
     <string name="settings_reset_all">Reset prompts and limits</string>
     <string name="settings_reset_all_body">Puts every prompt and limit back to the built-in values.</string>
 
-    <string name="widget_label">BrainDump</string>
+    <string name="widget_label">SangatAI</string>
     <string name="widget_description">Tap to type an idea, or tap the mic to say it</string>
     <string name="widget_hint">Dump an idea…</string>
     <string name="widget_prompt">What\'s on your mind?</string>

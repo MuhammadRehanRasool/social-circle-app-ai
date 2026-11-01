@@ -7,9 +7,9 @@
         android:shortcutLongLabel="@string/shortcut_voice_long"
         android:shortcutShortLabel="@string/shortcut_voice_short">
         <intent
-            android:action="dev.braindump.splitter.action.CAPTURE"
-            android:targetClass="dev.braindump.splitter.ui.capture.CaptureActivity"
-            android:targetPackage="dev.braindump.splitter">
+            android:action="dev.sangatai.app.action.CAPTURE"
+            android:targetClass="dev.sangatai.app.ui.capture.CaptureActivity"
+            android:targetPackage="dev.sangatai.app">
             <extra
                 android:name="start_with_voice"
                 android:value="true" />
@@ -22,8 +22,8 @@
         android:shortcutLongLabel="@string/shortcut_type_long"
         android:shortcutShortLabel="@string/shortcut_type_short">
         <intent
-            android:action="dev.braindump.splitter.action.CAPTURE"
-            android:targetClass="dev.braindump.splitter.ui.capture.CaptureActivity"
-            android:targetPackage="dev.braindump.splitter" />
+            android:action="dev.sangatai.app.action.CAPTURE"
+            android:targetClass="dev.sangatai.app.ui.capture.CaptureActivity"
+            android:targetPackage="dev.sangatai.app" />
     </shortcut>
 </shortcuts>
