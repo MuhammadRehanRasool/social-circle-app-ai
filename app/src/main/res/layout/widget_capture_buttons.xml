@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 2x1: two buttons, type and talk. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_background"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:padding="8dp">
+
+    <ImageView
+        android:id="@+id/widget_type"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@drawable/widget_pill"
+        android:contentDescription="@string/shortcut_type_long"
+        android:padding="12dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_edit"
+        android:tint="@color/widget_text" />
+
+    <ImageView
+        android:id="@+id/widget_voice"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_marginStart="8dp"
+        android:layout_weight="1"
+        android:background="@drawable/widget_accent_pill"
+        android:contentDescription="@string/shortcut_voice_long"
+        android:padding="12dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/ic_mic"
+        android:tint="@color/widget_mic_icon" />
+</LinearLayout>

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_mic"
+        android:shortcutId="voice_dump"
+        android:shortcutLongLabel="@string/shortcut_voice_long"
+        android:shortcutShortLabel="@string/shortcut_voice_short">
+        <intent
+            android:action="dev.braindump.splitter.action.CAPTURE"
+            android:targetClass="dev.braindump.splitter.ui.capture.CaptureActivity"
+            android:targetPackage="dev.braindump.splitter">
+            <extra
+                android:name="start_with_voice"
+                android:value="true" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_tile"
+        android:shortcutId="type_dump"
+        android:shortcutLongLabel="@string/shortcut_type_long"
+        android:shortcutShortLabel="@string/shortcut_type_short">
+        <intent
+            android:action="dev.braindump.splitter.action.CAPTURE"
+            android:targetClass="dev.braindump.splitter.ui.capture.CaptureActivity"
+            android:targetPackage="dev.braindump.splitter" />
+    </shortcut>
+</shortcuts>

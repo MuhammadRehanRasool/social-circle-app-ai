@@ -1,0 +1,125 @@
+name: Android Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_VERSION: "8.14.3"
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=4"
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Cache Gradle dependencies and build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ env.GRADLE_VERSION }}-${{ hashFiles('**/*.gradle.kts', 'gradle/libs.versions.toml', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-${{ env.GRADLE_VERSION }}-
+
+      # A stable debug key means each new APK installs over the previous one
+      # instead of failing with a signature mismatch.
+      - name: Cache debug keystore
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: android-debug-keystore-v1
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ env.GRADLE_VERSION }}
+          cache-disabled: true
+
+      # Parsers, tag merging, name matching and vector math. A failure stops the build.
+      - name: Unit tests
+        run: gradle --stacktrace --build-cache testDebugUnitTest
+
+      - name: Upload test report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-report
+          path: app/build/reports/tests/
+          retention-days: 7
+
+      - name: Prepare release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+            echo "BRAINDUMP_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "::notice::Release APK will be signed with the release keystore."
+          else
+            echo "::notice::Signing secrets not set. Release APK will be signed with the CI debug key."
+          fi
+
+      - name: Build release APK
+        env:
+          BRAINDUMP_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          BRAINDUMP_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          BRAINDUMP_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: gradle --stacktrace --build-cache assembleRelease
+
+      # Privacy gate: reads the permissions of the APK that was actually built. If any dependency
+      # ever brings network access back, the build fails instead of shipping it.
+      - name: Verify the APK has no network permission
+        run: |
+          AAPT2=$(find "$ANDROID_HOME/build-tools" -name aapt2 -type f | sort -V | tail -1)
+          PERMS=$("$AAPT2" dump permissions app/build/outputs/apk/release/app-release.apk)
+          echo "$PERMS"
+          if echo "$PERMS" | grep -E "android.permission.(INTERNET|ACCESS_NETWORK_STATE|ACCESS_WIFI_STATE|CHANGE_NETWORK_STATE)"; then
+            echo "::error::The APK requests network access. Remove it in AndroidManifest.xml with tools:node=\"remove\"."
+            exit 1
+          fi
+          echo "::notice::No network permissions in the APK."
+
+      - name: Collect APK
+        id: collect
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/${REPO_NAME}.apk"
+          echo "repo_name=${REPO_NAME}" >> "$GITHUB_OUTPUT"
+          ls -lh dist
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.collect.outputs.repo_name }}
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.jks"
