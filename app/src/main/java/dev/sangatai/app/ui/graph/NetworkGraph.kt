@@ -290,7 +290,7 @@ fun NetworkGraph(
             if (r >= 11.dp.toPx()) {
                 val initials = measurer.measure(
                     initialsOf(person.name),
-                    TextStyle(color = colors.onFill, fontSize = (r / density / 1.9f).coerceIn(9f, 18f).sp, fontWeight = FontWeight.Bold),
+                    TextStyle(color = colors.onFill, fontSize = (r / density / 1.9f).coerceIn(9f, 18f).sp, fontWeight = FontWeight.SemiBold),
                 )
                 drawText(
                     initials,
@@ -323,7 +323,7 @@ fun NetworkGraph(
         val meR = GraphSimulation.ME_RADIUS * k
         drawCircle(brush = glass.accent, radius = meR, center = center)
         drawCircle(scheme.surface, radius = meR, center = center, style = Stroke(2.dp.toPx()))
-        val me = measurer.measure("You", TextStyle(color = glass.onAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold))
+        val me = measurer.measure("You", TextStyle(color = glass.onAccent, fontSize = 13.sp, fontWeight = FontWeight.SemiBold))
         drawText(me, topLeft = center - Offset(me.size.width / 2f, me.size.height / 2f))
     }
 }

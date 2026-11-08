@@ -85,7 +85,7 @@ fun dateTime(at: Long): String = DateFormat.getDateTimeInstance(DateFormat.MEDIU
 /** "car_expert" -> "car expert". */
 fun tagText(tag: String): String = tag.replace('_', ' ')
 
-/** A round avatar with initials, colored by who they are to the user. */
+/** A round avatar with initials, tinted by who they are to the user. */
 @Composable
 fun Avatar(name: String, relation: String?, size: Dp = 44.dp, modifier: Modifier = Modifier) {
     val colors = RelationGroup.of(relation).colors()
@@ -93,13 +93,13 @@ fun Avatar(name: String, relation: String?, size: Dp = 44.dp, modifier: Modifier
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(colors.fill),
+            .background(colors.fill.copy(alpha = 0.14f)),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = initialsOf(name),
-            color = colors.onFill,
-            fontWeight = FontWeight.SemiBold,
+            color = colors.fill,
+            fontWeight = FontWeight.Medium,
             fontSize = (size.value * 0.36f).sp,
             maxLines = 1,
         )
@@ -161,26 +161,22 @@ fun StatusChip(status: AiStatus, modifier: Modifier = Modifier) {
         label = "dot",
     )
     val busy = status is AiStatus.Checking || status is AiStatus.Downloading
-    GlassPanel(modifier, shape = CircleShape) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            StatusDot(dotColor, busy)
-            AnimatedContent(
-                targetState = aiStatusLabel(status),
-                transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(220)) },
-                label = "status",
-            ) { label ->
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
+    // A quiet line of text, not a badge: status is information, not decoration.
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        StatusDot(dotColor, busy)
+        AnimatedContent(
+            targetState = aiStatusLabel(status),
+            transitionSpec = { fadeIn(tween(220)) togetherWith fadeOut(tween(220)) },
+            label = "status",
+        ) { label ->
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 8.dp),
+            )
         }
     }
 }
@@ -188,7 +184,7 @@ fun StatusChip(status: AiStatus, modifier: Modifier = Modifier) {
 @Composable
 private fun StatusDot(color: Color, busy: Boolean) {
     val dot = Modifier
-        .size(8.dp)
+        .size(6.dp)
         .clip(CircleShape)
     if (!busy) {
         Box(dot.background(color))
@@ -208,15 +204,15 @@ private fun StatusDot(color: Color, busy: Boolean) {
     )
 }
 
-/** A titled glass card, the building block of the settings and profile screens. */
+/** A titled card, the building block of the settings and profile screens. */
 @Composable
 fun Section(title: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Column(modifier.padding(top = 12.dp)) {
+    Column(modifier.padding(top = 20.dp)) {
         Text(
-            text = title,
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp),
+            text = title.uppercase(Locale.getDefault()),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
         )
         GlassPanel(Modifier.fillMaxWidth()) {
             content()

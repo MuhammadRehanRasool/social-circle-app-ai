@@ -2,6 +2,10 @@ package dev.sangatai.app.ui.home
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -9,24 +13,29 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -54,7 +63,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -79,9 +89,11 @@ import dev.sangatai.app.ui.common.relativeTime
 import dev.sangatai.app.ui.common.tagText
 import dev.sangatai.app.ui.graph.NetworkGraph
 import dev.sangatai.app.ui.theme.AccentButton
+import dev.sangatai.app.ui.theme.Glass
 import dev.sangatai.app.ui.theme.GlassBackdrop
 import dev.sangatai.app.ui.theme.GlassIconButton
 import dev.sangatai.app.ui.theme.GlassPanel
+import dev.sangatai.app.ui.theme.SangatMark
 import kotlinx.coroutines.delay
 
 enum class HomeTab(val label: String) { CIRCLE("Circle"), PEOPLE("People"), SAID("What you said") }
@@ -171,7 +183,7 @@ fun HomeScreen(
                 onAsk = { asking = true },
                 onOpenSettings = onOpenSettings,
             )
-            TabSwitcher(tab = tab, onTab = { tab = it }, modifier = Modifier.padding(horizontal = 16.dp))
+            TabSwitcher(tab = tab, onTab = { tab = it }, modifier = Modifier.padding(horizontal = 20.dp))
             Box(
                 Modifier
                     .weight(1f)
@@ -300,11 +312,16 @@ private fun TopBar(
     onOpenSettings: () -> Unit,
 ) {
     Row(
-        modifier = Modifier.padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 10.dp),
+        modifier = Modifier.padding(start = 20.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f)) {
-            Text("SangatAI", style = MaterialTheme.typography.headlineMedium)
+        SangatMark(size = 30.dp)
+        Column(
+            Modifier
+                .weight(1f)
+                .padding(start = 12.dp),
+        ) {
+            Text("SangatAI", style = MaterialTheme.typography.headlineSmall)
             Text(
                 text = when (people) {
                     0 -> "Your circle, mapped from what you say"
@@ -314,45 +331,66 @@ private fun TopBar(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            StatusChip(aiStatus, Modifier.padding(top = 6.dp))
         }
-        GlassIconButton(onClick = onAsk, strong = false, onClickLabel = "Who can help?") {
-            Icon(Icons.Filled.Search, contentDescription = "Who can help?")
+        GlassIconButton(onClick = onAsk, onClickLabel = "Who can help?") {
+            Icon(Icons.Filled.Search, contentDescription = "Who can help?", modifier = Modifier.size(20.dp))
         }
         Spacer(Modifier.width(8.dp))
-        GlassIconButton(onClick = onOpenSettings, strong = false) {
-            Icon(Icons.Filled.Settings, contentDescription = "Settings")
+        GlassIconButton(onClick = onOpenSettings) {
+            Icon(Icons.Filled.Settings, contentDescription = "Settings", modifier = Modifier.size(20.dp))
         }
     }
+    StatusChip(aiStatus, Modifier.padding(start = 22.dp, bottom = 12.dp))
 }
 
+/** A segmented control: a white card slides under the chosen tab. */
 @Composable
 private fun TabSwitcher(tab: HomeTab, onTab: (HomeTab) -> Unit, modifier: Modifier = Modifier) {
-    GlassPanel(modifier, shape = CircleShape) {
-        Row(Modifier.padding(4.dp)) {
-            HomeTab.entries.forEach { entry ->
+    val glass = Glass.colors
+    val tabs = HomeTab.entries
+    BoxWithConstraints(
+        modifier
+            .fillMaxWidth()
+            .clip(CircleShape)
+            .background(glass.inset)
+            .padding(3.dp),
+    ) {
+        val segment = maxWidth / tabs.size
+        val offset by animateDpAsState(
+            targetValue = segment * tab.ordinal,
+            animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
+            label = "tab",
+        )
+        Box(
+            Modifier
+                .offset(x = offset)
+                .width(segment)
+                .height(36.dp)
+                .clip(CircleShape)
+                .background(glass.fill)
+                .border(1.dp, glass.border, CircleShape),
+        )
+        Row(Modifier.height(36.dp)) {
+            tabs.forEach { entry ->
                 val on = entry == tab
+                val color by animateColorAsState(
+                    if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                    label = "tabText",
+                )
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .fillMaxHeight()
                         .clip(CircleShape)
-                        .then(if (on) Modifier.background(MaterialTheme.colorScheme.primary) else Modifier)
-                        .clickable(role = Role.Tab) { onTab(entry) }
-                        .padding(vertical = 8.dp),
+                        .selectable(selected = on, role = Role.Tab, onClick = { onTab(entry) }),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text(
-                        text = entry.label,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                    )
+                    Text(text = entry.label, style = MaterialTheme.typography.labelLarge, color = color, maxLines = 1)
                 }
             }
         }
     }
 }
-
 @Composable
 private fun CircleTab(
     graph: SocialGraph,
@@ -435,20 +473,47 @@ private fun GroupChip(group: RelationGroup, count: Int, on: Boolean, onClick: ()
 
 @Composable
 private fun EmptyCircle(modifier: Modifier = Modifier) {
-    GlassPanel(modifier.padding(32.dp)) {
-        Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text("Your circle starts here", style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = "Tap the mic and talk about your day, like:\n" +
-                    "“Had chai with my cousin Bilal, his wife Hina just started at Sara's company.”\n\n" +
-                    "Gemini Nano picks out the people, who they are to you, and how they know each other. " +
-                    "Everything stays on this phone.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp),
-            )
+    Column(
+        modifier
+            .padding(horizontal = 36.dp)
+            .padding(bottom = 72.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        SangatMark(size = 44.dp, ring = MaterialTheme.colorScheme.outline)
+        Text(
+            "Your circle starts here",
+            style = MaterialTheme.typography.headlineSmall,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 20.dp),
+        )
+        Text(
+            "Tap Tell and talk about your day, the way you would to a friend.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 8.dp),
+        )
+        GlassPanel(Modifier.padding(top = 24.dp), shape = MaterialTheme.shapes.medium) {
+            Column(Modifier.padding(horizontal = 18.dp, vertical = 14.dp)) {
+                Text(
+                    "FOR EXAMPLE",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    "“Had chai with my cousin Bilal. His wife Hina just started at Sara's company.”",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontFamily = FontFamily.Serif, fontStyle = FontStyle.Italic),
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
         }
+        Text(
+            "Gemini Nano finds the people and how they're connected. Nothing leaves this phone.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 16.dp),
+        )
     }
 }
 
@@ -579,7 +644,7 @@ private fun OutcomeBody(outcome: IngestOutcome, onOpenPerson: (Long) -> Unit) {
                         text = buildString {
                             append(person.name)
                             person.relation?.let { append(" · $it") }
-                            if (person.isNew) append(" ✦")
+                            if (person.isNew) append(" · new")
                         },
                         color = colors.fill,
                         container = colors.fill.copy(alpha = 0.14f),
@@ -630,18 +695,17 @@ private fun CaptureButtons(onType: () -> Unit, onVoice: () -> Unit, modifier: Mo
         verticalAlignment = Alignment.CenterVertically,
     ) {
         GlassIconButton(onClick = onType, size = 56.dp, onClickLabel = "Type") {
-            Icon(Icons.Filled.Add, contentDescription = "Type", tint = MaterialTheme.colorScheme.primary)
+            Icon(Icons.Filled.Add, contentDescription = "Type")
         }
         AccentButton(
             onClick = onVoice,
             modifier = Modifier.height(56.dp),
-            contentPadding = PaddingValues(horizontal = 20.dp),
+            contentPadding = PaddingValues(start = 20.dp, end = 24.dp),
         ) {
             Icon(painterResource(R.drawable.ic_mic), contentDescription = null)
             Text(
                 "Tell",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(start = 8.dp, end = 4.dp),
             )
         }

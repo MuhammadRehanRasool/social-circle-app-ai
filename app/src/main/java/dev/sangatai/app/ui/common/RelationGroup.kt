@@ -56,7 +56,7 @@ enum class RelationGroup(val label: String) {
     }
 }
 
-/** Fill and text colors for a [RelationGroup], from the SangatAI palette. */
+/** Fill and text colors for a [RelationGroup]: muted, earthy tones that sit quietly on paper. */
 @Immutable
 data class GroupColors(val fill: Color, val onFill: Color)
 
@@ -65,15 +65,12 @@ data class GroupColors(val fill: Color, val onFill: Color)
 fun RelationGroup.colors(): GroupColors {
     val scheme = MaterialTheme.colorScheme
     val dark = scheme.surface.luminance() < 0.5f
+    val on = if (dark) Color(0xFF1B1A18) else Color.White
     return when (this) {
-        RelationGroup.FAMILY -> GroupColors(scheme.tertiary, scheme.onTertiary)
-        RelationGroup.FRIENDS -> GroupColors(scheme.primary, scheme.onPrimary)
-        RelationGroup.WORK -> GroupColors(scheme.secondary, scheme.onSecondary)
-        RelationGroup.OTHERS -> if (dark) {
-            GroupColors(Color(0xFF8FC9B0), Color(0xFF00382A))
-        } else {
-            GroupColors(Color(0xFF3F7A64), Color.White)
-        }
+        RelationGroup.FAMILY -> GroupColors(if (dark) Color(0xFFE39A7A) else Color(0xFFA4492A), on)
+        RelationGroup.FRIENDS -> GroupColors(if (dark) Color(0xFF9DB7CB) else Color(0xFF4F6F86), on)
+        RelationGroup.WORK -> GroupColors(if (dark) Color(0xFFD8B877) else Color(0xFF85672A), on)
+        RelationGroup.OTHERS -> GroupColors(if (dark) Color(0xFF8DB89A) else Color(0xFF4F7A5A), on)
         RelationGroup.UNKNOWN -> GroupColors(scheme.outline, scheme.surface)
     }
 }

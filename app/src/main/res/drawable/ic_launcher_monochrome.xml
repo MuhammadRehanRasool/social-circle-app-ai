@@ -1,0 +1,21 @@
+<!-- One-color version of ic_launcher_foreground for themed (monochrome) icons.
+     through the gap. Ring radius 22 keeps it inside the 66dp adaptive-icon safe zone.
+     Same geometry as SangatMark in ui/theme/Glass.kt. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="@color/ic_launcher_foreground"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M75.25,48.31A22,22 0,1 1,59.69 32.75" />
+    <path
+        android:fillColor="@color/ic_launcher_foreground"
+        android:pathData="M69.56,38.44m-4.5,0a4.5,4.5 0,1 1,9 0a4.5,4.5 0,1 1,-9 0" />
+    <path
+        android:fillColor="@color/ic_launcher_foreground"
+        android:pathData="M54,54m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+</vector>

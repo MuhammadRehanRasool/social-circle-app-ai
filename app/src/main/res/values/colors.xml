@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- SangatAI warm palette: terracotta, honey and rose on cream. Mirrors ui/theme/Theme.kt. -->
-    <color name="window_background">#FFFFF8F2</color>
-    <color name="ic_launcher_background">#FFC2532F</color>
-    <color name="ic_launcher_foreground">#FFFFF8F2</color>
-    <color name="ic_quick_background">#FF9C4361</color>
+    <!-- SangatAI "paper & ink": warm paper, near-black ink, one clay accent. Mirrors ui/theme/Theme.kt. -->
+    <color name="window_background">#FFF5F2EC</color>
+    <color name="ic_launcher_background">#FF1B1A18</color>
+    <color name="ic_launcher_foreground">#FFF5F2EC</color>
+    <color name="ic_launcher_accent">#FFE39A7A</color>
+    <color name="ic_quick_background">#FFA4492A</color>
 
     <!-- The translucent widget fills live in res/color, since they need an alpha. -->
-    <color name="widget_glass_stroke">#99FFFFFF</color>
-    <color name="widget_highlight">#33FFFFFF</color>
-    <color name="widget_text">#FF231A15</color>
-    <color name="widget_text_secondary">#FF6B5650</color>
-    <color name="widget_accent_start">#FFC2532F</color>
-    <color name="widget_accent_end">#FF9C4361</color>
-    <color name="widget_mic_icon">#FFFFFFFF</color>
-    <color name="widget_ripple">#33000000</color>
+    <color name="widget_glass_stroke">#FFDDD7CD</color>
+    <color name="widget_highlight">#00FFFFFF</color>
+    <color name="widget_text">#FF1B1A18</color>
+    <color name="widget_text_secondary">#FF67625A</color>
+    <color name="widget_accent_start">#FF1B1A18</color>
+    <color name="widget_accent_end">#FF1B1A18</color>
+    <color name="widget_mic_icon">#FFF5F2EC</color>
+    <color name="widget_ripple">#22000000</color>
 </resources>

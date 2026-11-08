@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="window_background">#FF1C1411</color>
+    <color name="window_background">#FF131211</color>
 
-    <color name="widget_glass_stroke">#1FFFFFFF</color>
-    <color name="widget_highlight">#14FFFFFF</color>
-    <color name="widget_text">#FFF1DFD8</color>
-    <color name="widget_text_secondary">#FFD8C2BA</color>
-    <color name="widget_accent_start">#FFFFB59C</color>
-    <color name="widget_accent_end">#FFFFB1C6</color>
-    <color name="widget_mic_icon">#FF5C1A03</color>
-    <color name="widget_ripple">#33FFFFFF</color>
+    <color name="widget_glass_stroke">#FF34312D</color>
+    <color name="widget_highlight">#00FFFFFF</color>
+    <color name="widget_text">#FFECE8E1</color>
+    <color name="widget_text_secondary">#FFA8A198</color>
+    <color name="widget_accent_start">#FFECE8E1</color>
+    <color name="widget_accent_end">#FFECE8E1</color>
+    <color name="widget_mic_icon">#FF131211</color>
+    <color name="widget_ripple">#22FFFFFF</color>
 </resources>

@@ -1,11 +1,8 @@
 package dev.sangatai.app.ui.theme
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,14 +23,16 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
@@ -43,41 +42,45 @@ import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
 
-/**
- * Soft color fields that the translucent panels sit on, which is what makes them read as
- * frosted glass. They swirl into place once on launch and then hold still, so an idle screen
- * doesn't keep the display redrawing. Positions are read in the draw phase only.
- */
+/** The page: plain paper. No moving color fields, so an idle screen never redraws. */
 @Composable
 fun GlassBackdrop(modifier: Modifier = Modifier) {
-    val glass = Glass.colors
-    val settle = remember { Animatable(0f) }
-    LaunchedEffect(Unit) {
-        settle.animateTo(1f, tween(SETTLE_MS, easing = FastOutSlowInEasing))
-    }
-    Canvas(modifier.fillMaxSize()) {
-        drawRect(glass.base)
-        val progress = settle.value
-        val turn = (1f - progress) * SETTLE_TURN
-        glass.blobs.forEachIndexed { index, color ->
-            val anchor = BLOB_ANCHORS[index % BLOB_ANCHORS.size]
-            val angle = turn + index * 2.1
-            val center = Offset(
-                x = size.width * (anchor.x + 0.14f * cos(angle).toFloat()),
-                y = size.height * (anchor.y + 0.08f * sin(angle).toFloat()),
-            )
-            val radius = size.maxDimension * (0.4f + 0.15f * progress)
-            val tint = color.copy(alpha = color.alpha * progress)
-            drawCircle(
-                brush = Brush.radialGradient(listOf(tint, tint.copy(alpha = 0f)), center, radius),
-                radius = radius,
-                center = center,
-            )
-        }
+    val base = Glass.colors.base
+    Canvas(modifier.fillMaxSize()) { drawRect(base) }
+}
+
+/**
+ * The SangatAI mark: you (the center dot) inside your circle, an open ring with
+ * one person stepping in through the gap. Same geometry as res/drawable/ic_launcher_foreground.xml.
+ */
+@Composable
+fun SangatMark(
+    modifier: Modifier = Modifier,
+    size: Dp = 28.dp,
+    ring: Color = MaterialTheme.colorScheme.onSurface,
+    dot: Color = MaterialTheme.colorScheme.primary,
+) {
+    Canvas(modifier.size(size)) {
+        // Drawn on a 44-unit grid: ring radius 22 at 108 scale maps to 0.4 of the box.
+        val u = this.size.minDimension / 44f
+        val c = Offset(this.size.width / 2f, this.size.height / 2f)
+        val r = 16f * u
+        drawArc(
+            color = ring,
+            startAngle = -15f,
+            sweepAngle = 300f,
+            useCenter = false,
+            topLeft = Offset(c.x - r, c.y - r),
+            size = Size(2 * r, 2 * r),
+            style = Stroke(width = 4.4f * u, cap = StrokeCap.Round),
+        )
+        val a = (-45.0) * PI / 180.0
+        drawCircle(dot, radius = 3.3f * u, center = Offset(c.x + r * cos(a).toFloat(), c.y + r * sin(a).toFloat()))
+        drawCircle(ring, radius = 5.1f * u, center = c)
     }
 }
 
-/** A frosted panel: translucent fill and a hairline that catches light on top, no drop shadow. */
+/** A card: paper-white fill and a hairline edge, no drop shadow. */
 @Composable
 fun GlassPanel(
     modifier: Modifier = Modifier,
@@ -97,19 +100,19 @@ fun GlassPanel(
     }
 }
 
-/** Springy shrink while pressed, the iOS stand-in for a ripple. */
+/** A small, unbouncy settle while pressed, in place of a ripple. */
 @Composable
-fun rememberPressScale(interactionSource: MutableInteractionSource, pressedScale: Float = 0.96f): () -> Float {
+fun rememberPressScale(interactionSource: MutableInteractionSource, pressedScale: Float = 0.97f): () -> Float {
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
         targetValue = if (pressed) pressedScale else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
         label = "press",
     )
     return { scale }
 }
 
-/** The primary action: a gradient pill. */
+/** The primary action: a solid ink pill. */
 @Composable
 fun AccentButton(
     onClick: () -> Unit,
@@ -147,7 +150,7 @@ fun AccentButton(
     }
 }
 
-/** A round glass button for secondary actions. */
+/** A round outlined button for secondary actions. */
 @Composable
 fun GlassIconButton(
     onClick: () -> Unit,
@@ -158,7 +161,7 @@ fun GlassIconButton(
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
-    val scale = rememberPressScale(interaction, pressedScale = 0.9f)
+    val scale = rememberPressScale(interaction, pressedScale = 0.94f)
     GlassPanel(
         modifier = modifier
             .size(size)
@@ -179,8 +182,3 @@ fun GlassIconButton(
         Box(Modifier.align(Alignment.Center), content = content)
     }
 }
-
-private const val SETTLE_MS = 1_600
-private const val SETTLE_TURN = PI / 2
-
-private val BLOB_ANCHORS = listOf(Offset(0.15f, 0.12f), Offset(0.9f, 0.45f), Offset(0.25f, 0.85f))
