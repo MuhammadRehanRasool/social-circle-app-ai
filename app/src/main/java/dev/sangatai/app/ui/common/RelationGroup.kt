@@ -25,9 +25,9 @@ enum class RelationGroup(val label: String) {
             if (words.isEmpty()) return UNKNOWN
             // Work first, so "business partner" isn't read as a life partner.
             return when {
-                words.any { it.startsWithAny(WORK) } -> WORK
-                words.any { it.startsWithAny(FAMILY) } -> FAMILY
-                words.any { it.startsWithAny(FRIENDS) } -> FRIENDS
+                words.any { it.startsWithAny(WORK_KEYS) } -> WORK
+                words.any { it.startsWithAny(FAMILY_KEYS) } -> FAMILY
+                words.any { it.startsWithAny(FRIENDS_KEYS) } -> FRIENDS
                 else -> OTHERS
             }
         }
@@ -36,12 +36,12 @@ enum class RelationGroup(val label: String) {
 
         private fun String.startsWithAny(keys: List<String>) = keys.any { startsWith(it) }
 
-        private val WORK = listOf(
+        private val WORK_KEYS = listOf(
             "boss", "manager", "colleague", "coworker", "co-worker", "teammate", "client", "customer",
             "business", "office", "workplace", "worker", "employee", "employer", "intern", "founder", "cofounder", "recruiter",
             "mentor", "supervisor", "lead", "senior", "junior", "vendor", "supplier", "investor", "hr", "ceo", "cto",
         )
-        private val FAMILY = listOf(
+        private val FAMILY_KEYS = listOf(
             "mother", "mom", "mum", "ammi", "amma", "father", "dad", "abbu", "abba", "papa", "baba", "parent",
             "brother", "bhai", "sister", "behen", "bahen", "sibling", "son", "daughter", "child", "kid",
             "wife", "husband", "spouse", "partner", "fianc", "girlfriend", "boyfriend", "cousin", "uncle", "aunt",
@@ -49,7 +49,7 @@ enum class RelationGroup(val label: String) {
             "taya", "nephew", "niece", "grand", "nana", "nani", "dada", "dadi", "family", "relative",
             "bhabhi", "bhabi", "jija", "saala", "sala", "saali", "devar", "nand", "married",
         )
-        private val FRIENDS = listOf(
+        private val FRIENDS_KEYS = listOf(
             "friend", "dost", "yaar", "yar", "buddy", "bestie", "bff", "mate", "pal", "classmate", "roommate",
             "flatmate", "gym", "homie", "bro",
         )
