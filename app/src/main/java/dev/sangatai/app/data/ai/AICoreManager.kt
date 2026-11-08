@@ -1,12 +1,10 @@
 package dev.sangatai.app.data.ai
 
-import android.graphics.Bitmap
 import com.google.mlkit.genai.common.DownloadStatus
 import com.google.mlkit.genai.common.FeatureStatus
 import com.google.mlkit.genai.common.GenAiException
 import com.google.mlkit.genai.prompt.Generation
 import com.google.mlkit.genai.prompt.GenerativeModel
-import com.google.mlkit.genai.prompt.ImagePart
 import com.google.mlkit.genai.prompt.ModelPreference
 import com.google.mlkit.genai.prompt.ModelReleaseStage
 import com.google.mlkit.genai.prompt.SystemInstruction
@@ -15,9 +13,6 @@ import com.google.mlkit.genai.prompt.generateContentRequest
 import com.google.mlkit.genai.prompt.generationConfig
 import com.google.mlkit.genai.prompt.modelConfig
 import dev.sangatai.app.domain.model.AiStatus
-import dev.sangatai.app.domain.model.IdeaCategory
-import dev.sangatai.app.domain.model.Persona
-import dev.sangatai.app.domain.model.PersonaAspect
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,13 +21,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
-
-/** One polished note: a title, the Markdown under it, and where it's filed. */
-data class IdeaNote(
-    val title: String,
-    val body: String,
-    val category: IdeaCategory = IdeaCategory.OTHER,
-)
 
 /**
  * The last exchange with Gemini Nano, exactly as sent and received, for tuning prompts.
@@ -64,7 +52,7 @@ sealed class SplitException(
     /** The model answered, but never with any text. */
     class MalformedOutput(message: String) : SplitException(message, retryable = true)
 
-    class EmptyInput : SplitException("Nothing to split", retryable = false)
+    class EmptyInput : SplitException("Nothing to read", retryable = false)
 }
 
 /**
@@ -72,9 +60,8 @@ sealed class SplitException(
  * that AICore already has on the device (no app-private model copy).
  *
  * Requests are serialized through [mutex] because AICore runs one inference at a time.
- * The answer is a Markdown note with a "Category:" line and a "# Title"; both are optional
- * when reading it back, so any non-empty answer is usable. An empty one gets a nudged retry,
- * then the other builds AICore has installed.
+ * Answers are JSON read leniently by [CrmParsers]. An empty or unreadable one gets a nudged
+ * retry, then the other builds AICore has installed.
  */
 @Singleton
 class AICoreManager @Inject constructor(
@@ -145,93 +132,6 @@ class AICoreManager @Inject constructor(
     }
 
     /**
-     * Rewrites a rough dump (plus an optional photo, never stored) as a polished Markdown note,
-     * in the user's [persona] when there is one.
-     */
-    suspend fun polishIdea(rawIdea: String, image: Bitmap? = null, persona: Persona? = null): IdeaNote {
-        val tuning = settings.tuning.value
-        val input = sanitize(rawIdea, tuning.maxInputChars)
-        if (input.isEmpty()) throw SplitException.EmptyInput()
-        val fallbackTitle = titleFrom(input, tuning.maxTitleChars)
-
-        return infer(
-            Prompt(
-                tuning = tuning,
-                instruction = tuning.notePrompt,
-                retrySuffix = DefaultPrompts.NOTE_RETRY_SUFFIX,
-                userTurn = styleBlock(persona) +
-                    (if (image != null) IMAGE_HINT else "") +
-                    "Dump: $INPUT_OPEN$input$INPUT_CLOSE\nNote:",
-                parse = { parseNote(it, tuning.maxTitleChars, fallbackTitle, fallbackCategory = null) },
-                image = image,
-            )
-        )
-    }
-
-    /**
-     * Applies [ask] ("make it shorter", "add a section on X") to a note and returns it rewritten.
-     * A title or category the model leaves out keeps its current value.
-     */
-    suspend fun refineIdea(
-        current: IdeaNote,
-        originalDump: String,
-        ask: String,
-        persona: Persona? = null,
-    ): IdeaNote {
-        val tuning = settings.tuning.value
-        val request = sanitize(ask, tuning.maxAskChars)
-        if (request.isEmpty()) throw SplitException.EmptyInput()
-        val note = sanitize(noteText(current))
-        val dump = sanitize(originalDump, tuning.maxRefineDumpChars)
-
-        return infer(
-            Prompt(
-                tuning = tuning,
-                instruction = tuning.refinePrompt,
-                retrySuffix = DefaultPrompts.REFINE_RETRY_SUFFIX,
-                userTurn = styleBlock(persona) +
-                    "Note: $INPUT_OPEN$note$INPUT_CLOSE\n" +
-                    "Original dump: $INPUT_OPEN$dump$INPUT_CLOSE\n" +
-                    "Request: $INPUT_OPEN$request$INPUT_CLOSE\nUpdated note:",
-                parse = { parseNote(it, tuning.maxTitleChars, current.title, current.category) },
-            )
-        )
-    }
-
-    /**
-     * Reads how the user writes from their own [dumps], newest first. Only the persona's
-     * few short descriptors ever reach later prompts, never the dumps themselves, so one
-     * note's facts can't leak into another.
-     */
-    suspend fun describePersona(dumps: List<String>): Persona {
-        val tuning = settings.tuning.value
-        val joined = buildString {
-            for (dump in dumps) {
-                val text = sanitize(dump).replace(WHITESPACE, " ").take(PERSONA_DUMP_CHARS)
-                if (text.isEmpty() || length + text.length > PERSONA_INPUT_CHARS) continue
-                if (isNotEmpty()) append("\n---\n")
-                append(text)
-            }
-        }
-        if (joined.isEmpty()) throw SplitException.EmptyInput()
-        val used = joined.split("\n---\n").size
-
-        return infer(
-            Prompt(
-                // Cool and short: a few descriptors, in a fixed format.
-                tuning = tuning.copy(
-                    temperature = tuning.temperature.coerceAtMost(0.3f),
-                    maxOutputTokens = tuning.maxOutputTokens.coerceIn(PERSONA_MIN_TOKENS, PERSONA_MAX_TOKENS),
-                ),
-                instruction = DefaultPrompts.PERSONA,
-                retrySuffix = DefaultPrompts.PERSONA_RETRY_SUFFIX,
-                userTurn = "Dumps: $INPUT_OPEN$joined$INPUT_CLOSE\nStyle:",
-                parse = { parsePersona(it, used) },
-            )
-        )
-    }
-
-    /**
      * Finds the people in a rant and the tags it supports for each. A rant naming nobody is a
      * valid answer (an empty list), not a failure.
      */
@@ -241,7 +141,7 @@ class AICoreManager @Inject constructor(
         return infer(
             Prompt(
                 label = "ingest",
-                tuning = settings.tuning.value.copy(
+                tuning = GenParams(
                     temperature = crm.ingestTemperature,
                     topK = crm.ingestTopK,
                     maxOutputTokens = crm.ingestMaxOutputTokens,
@@ -271,7 +171,7 @@ class AICoreManager @Inject constructor(
         return infer(
             Prompt(
                 label = "ask",
-                tuning = settings.tuning.value.copy(
+                tuning = GenParams(
                     temperature = crm.askTemperature,
                     topK = crm.askTopK,
                     maxOutputTokens = crm.askMaxOutputTokens,
@@ -285,25 +185,22 @@ class AICoreManager @Inject constructor(
         )
     }
 
-    /** One line of short descriptors; empty when there's no persona to write in. */
-    private fun styleBlock(persona: Persona?): String {
-        if (persona == null) return ""
-        val traits = PersonaAspect.entries.mapNotNull { aspect ->
-            persona.traits[aspect]?.let { "${aspect.name.lowercase()}: ${sanitize(it)}" }
-        }
-        if (traits.isEmpty()) return ""
-        return "Style: $INPUT_OPEN${traits.joinToString("; ")}$INPUT_CLOSE\n"
-    }
+    /** Sampling for one request. */
+    private data class GenParams(
+        val temperature: Float,
+        val topK: Int,
+        val maxOutputTokens: Int,
+        val attempts: Int,
+    )
 
     /** One kind of request: its rules, the user turn, and how to read the answer. */
     private class Prompt<T : Any>(
-        val label: String = "note",
-        val tuning: AiTuning,
+        val label: String,
+        val tuning: GenParams,
         val instruction: String,
         val retrySuffix: String,
         val userTurn: String,
         val parse: (String) -> T?,
-        val image: Bitmap? = null,
     )
 
     private suspend fun <T : Any> infer(prompt: Prompt<T>): T =
@@ -354,7 +251,7 @@ class AICoreManager @Inject constructor(
                 prompt.parse(output)?.let { return@withLock it }
             }
 
-            // This build had nothing to say about this dump; another installed build may.
+            // This build had nothing usable to say; another installed build may.
             splitWithOtherModelsLocked(prompt)
                 ?: throw SplitException.MalformedOutput("Gemini Nano returned an empty answer")
         }
@@ -414,10 +311,7 @@ class AICoreManager @Inject constructor(
     ): String? {
         val instruction = if (retry) prompt.instruction + prompt.retrySuffix else prompt.instruction
         val userTurn = prompt.userTurn
-        val request = if (prompt.image != null) {
-            // Image turns go system-instruction-free; not every build takes both.
-            generateContentRequest(ImagePart(prompt.image), TextPart("$instruction\n$userTurn")) { tune(prompt.tuning) }
-        } else if (useSystemInstruction) {
+        val request = if (useSystemInstruction) {
             generateContentRequest(SystemInstruction(instruction), TextPart(userTurn)) { tune(prompt.tuning) }
         } else {
             generateContentRequest(TextPart("$instruction\n$userTurn")) { tune(prompt.tuning) }
@@ -434,7 +328,7 @@ class AICoreManager @Inject constructor(
         return output
     }
 
-    private fun com.google.mlkit.genai.prompt.GenerateContentRequest.Builder.tune(tuning: AiTuning) {
+    private fun com.google.mlkit.genai.prompt.GenerateContentRequest.Builder.tune(tuning: GenParams) {
         temperature = tuning.temperature
         topK = tuning.topK
         candidateCount = 1
@@ -625,117 +519,11 @@ class AICoreManager @Inject constructor(
     private fun describe(e: Throwable): String =
         e.message?.takeIf { it.isNotBlank() } ?: e.javaClass.simpleName
 
-    /**
-     * Reads a note out of the model's answer. The "Category:" line and a leading "# Title" are
-     * lifted out; a code fence or a "Here is your note:" lead-in is dropped. Missing pieces
-     * fall back to [fallbackTitle] and [fallbackCategory]. Null only when nothing is left.
-     */
-    internal fun parseNote(
-        modelOutput: String,
-        maxTitleChars: Int,
-        fallbackTitle: String,
-        fallbackCategory: IdeaCategory?,
-    ): IdeaNote? {
-        var lines = modelOutput.replace("\r\n", "\n").trim().lines()
-        if (lines.firstOrNull()?.trim()?.startsWith("```") == true) lines = lines.drop(1)
-        if (lines.lastOrNull()?.trim() == "```") lines = lines.dropLast(1)
-
-        var category: IdeaCategory? = null
-        val kept = ArrayList<String>(lines.size)
-        for (line in lines) {
-            val match = if (category == null) CATEGORY_LINE.matchEntire(line.trim()) else null
-            if (match != null) category = IdeaCategory.parse(match.groupValues[1]) else kept += line
-        }
-
-        var title = ""
-        var bodyLines: List<String> = kept
-        val titleAt = kept.indexOfFirst { TITLE_LINE.matches(it.trim()) }
-        // A lead-in sentence may sit above the title, but not a whole paragraph.
-        if (titleAt >= 0 && kept.subList(0, titleAt).count { it.isNotBlank() } <= 1) {
-            val groups = TITLE_LINE.matchEntire(kept[titleAt].trim())!!.groupValues
-            title = cleanTitle(groups[1].ifEmpty { groups[2] }).take(maxTitleChars)
-            bodyLines = kept.subList(titleAt + 1, kept.size)
-        }
-        val body = bodyLines.joinToString("\n").trim().replace(EXTRA_BLANK_LINES, "\n\n")
-        if (title.isEmpty() && body.isEmpty()) return null
-
-        return IdeaNote(
-            title = title.ifEmpty { fallbackTitle },
-            body = body,
-            category = category ?: fallbackCategory ?: IdeaCategory.OTHER,
-        )
-    }
-
-    /**
-     * Reads "Voice: casual, first person" lines, tolerating bullets, bold keys and stray
-     * brackets. Null unless at least [MIN_PERSONA_TRAITS] aspects came back.
-     */
-    internal fun parsePersona(modelOutput: String, basedOn: Int): Persona? {
-        val traits = LinkedHashMap<PersonaAspect, String>()
-        var summary = ""
-        for (line in modelOutput.replace("\r\n", "\n").lines()) {
-            val match = PERSONA_LINE.matchEntire(line.trim()) ?: continue
-            val key = match.groupValues[1].lowercase()
-            val value = match.groupValues[2].trim().trim('*', '_', '"', '<', '>', '[', ']', '.', ' ')
-            if (value.isEmpty()) continue
-            if (key == "summary") {
-                if (summary.isEmpty()) summary = value.take(PERSONA_SUMMARY_CHARS)
-                continue
-            }
-            val aspect = PersonaAspect.entries.firstOrNull { it.name.lowercase() == key } ?: continue
-            traits.putIfAbsent(aspect, value.take(PERSONA_TRAIT_CHARS))
-        }
-        if (traits.size < MIN_PERSONA_TRAITS) return null
-        return Persona(
-            traits = traits,
-            summary = summary,
-            basedOn = basedOn,
-            dumpCount = 0,
-            updatedAt = System.currentTimeMillis(),
-        )
-    }
-
-    /** The note the way the model writes it, so a refine can edit it in place. */
-    private fun noteText(note: IdeaNote): String =
-        "Category: ${note.category.name.lowercase().replaceFirstChar { it.titlecase() }}\n# ${note.title}\n\n${note.body}"
-
-    private fun cleanTitle(value: String): String = value.trim().trim('*', '_', '#', '"', '`').trim()
-
-    private fun titleFrom(input: String, maxChars: Int): String =
-        input.split(WHITESPACE)
-            .filter { it.isNotBlank() }
-            .take(FALLBACK_TITLE_WORDS)
-            .joinToString(" ")
-            .replaceFirstChar { it.titlecase() }
-            .take(maxChars)
-
     private fun sanitize(raw: String, maxChars: Int = Int.MAX_VALUE): String =
         raw.replace(INPUT_OPEN, "").replace(INPUT_CLOSE, "").trim().take(maxChars)
 
     private companion object {
-        const val FALLBACK_TITLE_WORDS = 6
-
-        /** "Category: Health", also bolded or with trailing words. */
-        val CATEGORY_LINE = Regex("""^[*_\s]*category[*_\s]*:[*_\s]*([A-Za-z]+).*$""", RegexOption.IGNORE_CASE)
-
-        /** "# Title" (up to ###) or a line that is entirely bold. */
-        val TITLE_LINE = Regex("""^(?:#{1,3}\s+(.+?)\s*#*|\*\*([^*]+)\*\*)$""")
-
-        /** "Voice: casual", also as "- **Voice**: casual". */
-        val PERSONA_LINE = Regex("""^[-*•\d.)\s]*\**([A-Za-z]+)\**\s*:\s*(.+)$""")
-        const val MIN_PERSONA_TRAITS = 3
-        const val PERSONA_TRAIT_CHARS = 60
-        const val PERSONA_SUMMARY_CHARS = 200
-        const val PERSONA_DUMP_CHARS = 400
-        const val PERSONA_INPUT_CHARS = 2_400
-        const val PERSONA_MIN_TOKENS = 160
-        const val PERSONA_MAX_TOKENS = 256
-
-        val EXTRA_BLANK_LINES = Regex("""\n{3,}""")
-        val WHITESPACE = Regex("""\s+""")
-
         const val INPUT_OPEN = "<<<"
-        const val IMAGE_HINT = "An image is attached as part of the dump; pull out whatever in it matters.\n"
         const val INPUT_CLOSE = ">>>"
 
         const val UNAVAILABLE_REASON =

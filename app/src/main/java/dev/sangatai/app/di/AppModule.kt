@@ -16,9 +16,8 @@ import dev.sangatai.app.data.local.crm.CaptureDao
 import dev.sangatai.app.data.local.crm.ConnectionDao
 import dev.sangatai.app.data.local.crm.InteractionLogDao
 import dev.sangatai.app.data.local.crm.PersonDao
-import dev.sangatai.app.data.repository.IdeaRepositoryImpl
+import dev.sangatai.app.data.local.crm.RelationFactDao
 import dev.sangatai.app.data.repository.PeopleRepositoryImpl
-import dev.sangatai.app.domain.repository.IdeaRepository
 import dev.sangatai.app.domain.repository.PeopleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +43,7 @@ object AppModule {
                 SangatDatabase.MIGRATION_2_3,
                 SangatDatabase.MIGRATION_3_4,
                 SangatDatabase.MIGRATION_4_5,
+                SangatDatabase.MIGRATION_5_6,
             )
             .addCallback(SangatDatabase.SECURE_DELETE)
             .build()
@@ -64,6 +64,9 @@ object AppModule {
     fun provideConnectionDao(database: SangatDatabase): ConnectionDao = database.connectionDao()
 
     @Provides
+    fun provideRelationFactDao(database: SangatDatabase): RelationFactDao = database.relationFactDao()
+
+    @Provides
     @Singleton
     @ApplicationScope
     fun provideApplicationScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -72,10 +75,6 @@ object AppModule {
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class RepositoryModule {
-
-    @Binds
-    @Singleton
-    abstract fun bindIdeaRepository(impl: IdeaRepositoryImpl): IdeaRepository
 
     @Binds
     @Singleton

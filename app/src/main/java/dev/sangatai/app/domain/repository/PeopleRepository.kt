@@ -5,6 +5,7 @@ import dev.sangatai.app.domain.model.Capture
 import dev.sangatai.app.domain.model.IngestOutcome
 import dev.sangatai.app.domain.model.Person
 import dev.sangatai.app.domain.model.PersonDetail
+import dev.sangatai.app.domain.model.SocialGraph
 import kotlinx.coroutines.flow.Flow
 
 /** The social graph: people, what was said about them, and who can help with what. */
@@ -16,6 +17,9 @@ interface PeopleRepository {
     fun observeRecentPeople(limit: Int): Flow<List<Person>>
 
     fun observePerson(personId: Long): Flow<PersonDetail?>
+
+    /** Everyone and every tie between them, for the network graph. */
+    fun observeGraph(): Flow<SocialGraph>
 
     /** Every rant, newest first, with what became of it. */
     fun observeCaptures(): Flow<List<Capture>>
@@ -41,6 +45,9 @@ interface PeopleRepository {
 
     /** Renames, and stops longer spoken names from overwriting it. */
     suspend fun renamePerson(personId: Long, name: String)
+
+    /** Who they are to the user ("cousin"). Null or blank goes back to what the rants said. */
+    suspend fun setRelation(personId: Long, relation: String?)
 
     /** Adds a tag as the user's. Returns false if it isn't a usable tag. */
     suspend fun addTag(personId: Long, tag: String): Boolean

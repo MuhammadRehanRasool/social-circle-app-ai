@@ -132,4 +132,69 @@ class CrmParsersTest {
         )!!
         assertEquals(listOf("P1", "P2"), m.map { it.shortId })
     }
+
+    // ---------------------------------------------------------------- relations and links
+
+    @Test
+    fun `reads relations and links from the documented shape`() {
+        val x = extract(
+            """{"interaction_summary":"x","mentioned":[{"name":"Bilal","relation":"cousin","tags":["gym_buddy"]},""" +
+                """{"name":"Sara","relation":"","tags":["car_expert"]},{"name":"Omar","relation":"colleague","tags":[]}],""" +
+                """"links":[{"a":"Sara","b":"Omar","relation":"married"}]}"""
+        )!!
+        assertEquals(listOf("cousin", "", "colleague"), x.mentioned.map { it.relation })
+        assertEquals(listOf(CrmParsers.Link("Sara", "Omar", "married")), x.links)
+    }
+
+    @Test
+    fun `a link to the user is who that person is to the user`() {
+        val x = extract(
+            """{"summary":"x","mentioned":[{"name":"Hina","tags":[]}],"links":[{"from":"me","to":"Hina","type":"best friend"}]}"""
+        )!!
+        assertEquals("best friend", x.mentioned.single().relation)
+        assertTrue(x.links.isEmpty())
+    }
+
+    @Test
+    fun `someone named only in a link is still saved`() {
+        val x = extract(
+            """{"summary":"x","mentioned":[{"name":"Ali","tags":["chef"]}],"links":[{"a":"Ali","b":"Zara","relation":"siblings"}]}"""
+        )!!
+        assertEquals(listOf("Ali", "Zara"), x.mentioned.map { it.name })
+        assertEquals("siblings", x.links.single().label)
+    }
+
+    @Test
+    fun `links without a relation or to the same person are dropped`() {
+        val x = extract(
+            """{"summary":"x","mentioned":[{"name":"Ali"},{"name":"Sara"}],""" +
+                """"links":[{"a":"Ali","b":"Sara"},{"a":"Ali","b":"ali","relation":"friends"},{"a":"Ali","b":"Sara","relation":"unknown"}]}"""
+        )!!
+        assertTrue(x.links.isEmpty())
+    }
+
+    @Test
+    fun `the same link twice is kept once`() {
+        val x = extract(
+            """{"summary":"x","mentioned":[{"name":"Ali"},{"name":"Sara"}],""" +
+                """"links":[{"a":"Ali","b":"Sara","relation":"married"},{"a":"Sara","b":"Ali","relation":"married"}]}"""
+        )!!
+        assertEquals(1, x.links.size)
+    }
+
+    @Test
+    fun `a name that is a relationship fills an empty relation`() {
+        val x = extract("""{"summary":"x","mentioned":[{"name":"Mom","tags":["supportive"]},{"name":"Ali","relation":""}]}""")!!
+        assertEquals(listOf("mom", ""), x.mentioned.map { it.relation })
+    }
+
+    @Test
+    fun `relation labels are cleaned`() {
+        assertEquals("cousin", CrmParsers.cleanLabel("My_Cousin "))
+        assertEquals("father-in-law", CrmParsers.cleanLabel("father-in-law"))
+        assertEquals("best friend", CrmParsers.cleanLabel("a Best Friend!"))
+        assertNull(CrmParsers.cleanLabel("unknown"))
+        assertNull(CrmParsers.cleanLabel(""))
+        assertNull(CrmParsers.cleanLabel("N/A"))
+    }
 }

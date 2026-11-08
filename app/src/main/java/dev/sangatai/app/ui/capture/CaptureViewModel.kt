@@ -3,8 +3,8 @@ package dev.sangatai.app.ui.capture
 import androidx.lifecycle.ViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.sangatai.app.di.ApplicationScope
-import dev.sangatai.app.domain.model.CaptureOutcome
-import dev.sangatai.app.domain.repository.IdeaRepository
+import dev.sangatai.app.domain.model.IngestOutcome
+import dev.sangatai.app.domain.repository.PeopleRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,13 +14,13 @@ import javax.inject.Inject
 
 sealed interface CaptureUiState {
     data object Editing : CaptureUiState
-    data object Splitting : CaptureUiState
-    data class Finished(val outcome: CaptureOutcome) : CaptureUiState
+    data object Reading : CaptureUiState
+    data class Finished(val outcome: IngestOutcome) : CaptureUiState
 }
 
 @HiltViewModel
 class CaptureViewModel @Inject constructor(
-    private val repository: IdeaRepository,
+    private val people: PeopleRepository,
     @ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
 
@@ -28,14 +28,14 @@ class CaptureViewModel @Inject constructor(
     val state: StateFlow<CaptureUiState> = _state.asStateFlow()
 
     /**
-     * Saves and splits while the sheet is still on screen, because Gemini Nano won't serve
-     * a backgrounded app. Runs in the app scope, so dismissing the sheet never loses the idea.
+     * Saves and reads while the sheet is still on screen, because Gemini Nano won't serve a
+     * backgrounded app. Runs in the app scope, so dismissing the sheet never loses what was said.
      */
-    fun submit(text: String, image: android.graphics.Bitmap?) {
-        if ((text.isBlank() && image == null) || _state.value != CaptureUiState.Editing) return
-        _state.value = CaptureUiState.Splitting
+    fun submit(text: String) {
+        if (text.isBlank() || _state.value != CaptureUiState.Editing) return
+        _state.value = CaptureUiState.Reading
         appScope.launch {
-            _state.value = CaptureUiState.Finished(repository.captureAndSplit(text, image))
+            _state.value = CaptureUiState.Finished(people.ingest(text))
         }
     }
 }

@@ -5,12 +5,12 @@ import android.content.ComponentName
 import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.text.format.Formatter
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,32 +30,33 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -63,59 +64,62 @@ import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.sangatai.app.R
-import dev.sangatai.app.data.ai.AiSettings
-import dev.sangatai.app.data.ai.AiTuning
+import dev.sangatai.app.data.ai.AiTrace
+import dev.sangatai.app.data.ai.CrmPrompts
+import dev.sangatai.app.data.ai.CrmTuning
+import dev.sangatai.app.data.repository.StoredFile
+import dev.sangatai.app.data.repository.WipeScope
 import dev.sangatai.app.tile.SangatTileService
 import dev.sangatai.app.ui.capture.QuickShortcuts
-import dev.sangatai.app.ui.dashboard.DaySection
-import dev.sangatai.app.ui.dashboard.exportFileName
-import dev.sangatai.app.ui.dashboard.exportMarkdown
-import dev.sangatai.app.ui.dashboard.saveExport
-import dev.sangatai.app.ui.dashboard.shareExport
+import dev.sangatai.app.ui.common.ConfirmDialog
+import dev.sangatai.app.ui.common.Section
+import dev.sangatai.app.ui.common.SettingRow
+import dev.sangatai.app.ui.common.dateTime
+import dev.sangatai.app.ui.common.glassFieldColors
 import dev.sangatai.app.ui.theme.AccentButton
-import dev.sangatai.app.ui.theme.Glass
 import dev.sangatai.app.ui.theme.GlassBackdrop
 import dev.sangatai.app.ui.theme.GlassIconButton
-import dev.sangatai.app.ui.theme.GlassPanel
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 @Composable
 fun SettingsRoute(onBack: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
-    val usePreviewModel by viewModel.usePreviewModel.collectAsStateWithLifecycle()
     val tuning by viewModel.tuning.collectAsStateWithLifecycle()
-    val sections by viewModel.sections.collectAsStateWithLifecycle()
+    val usePreviewModel by viewModel.usePreviewModel.collectAsStateWithLifecycle()
+    val trace by viewModel.lastTrace.collectAsStateWithLifecycle()
+    val legacyNotes by viewModel.legacyNotes.collectAsStateWithLifecycle()
 
     SettingsScreen(
-        usePreviewModel = usePreviewModel,
-        onUsePreviewModelChange = viewModel::setUsePreviewModel,
         tuning = tuning,
-        onSaveTuning = viewModel::saveTuning,
-        onResetTuning = viewModel::resetTuning,
-        sections = sections,
+        usePreviewModel = usePreviewModel,
+        trace = trace,
+        legacyNotes = legacyNotes,
+        viewModel = viewModel,
         onBack = onBack,
     )
 }
 
 /**
- * Export, shortcuts, the model choice, and every prompt and limit the AI runs with.
- * Edits are kept as a draft and saved with the Save button, or on the way out.
+ * Shortcuts, the model, every prompt and number the AI runs with, and the user's data: export,
+ * what's stored, and delete. Edits are a draft until Save, or saved on the way out.
  */
 @Composable
-fun SettingsScreen(
+private fun SettingsScreen(
+    tuning: CrmTuning,
     usePreviewModel: Boolean,
-    onUsePreviewModelChange: (Boolean) -> Unit,
-    tuning: AiTuning,
-    onSaveTuning: (AiTuning) -> Unit,
-    onResetTuning: () -> Unit,
-    sections: List<DaySection>,
+    trace: AiTrace?,
+    legacyNotes: Int,
+    viewModel: SettingsViewModel,
     onBack: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     // Field key to the text being edited; a HashMap so it survives rotation.
     var edits by rememberSaveable { mutableStateOf(HashMap<String, String>()) }
     val draft = remember(tuning, edits) { applyEdits(tuning, edits) }
     val dirty = edits.isNotEmpty()
     val save = {
-        if (dirty) onSaveTuning(draft)
+        if (dirty) viewModel.saveTuning(draft)
         edits = HashMap()
     }
     val leave = {
@@ -130,6 +134,19 @@ fun SettingsScreen(
 
     fun shown(key: String, saved: String): String = edits[key] ?: saved
 
+    var confirm by rememberSaveable { mutableStateOf<String?>(null) }
+    var inventory by remember { mutableStateOf<List<StoredFile>?>(null) }
+    var showTrace by rememberSaveable { mutableStateOf(false) }
+
+    val exportFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            scope.launch {
+                val ok = viewModel.export(uri)
+                Toast.makeText(context, if (ok) "Exported" else "Couldn't write the file", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     Box(Modifier.fillMaxSize()) {
         GlassBackdrop()
         Column(
@@ -143,10 +160,10 @@ fun SettingsScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 GlassIconButton(onClick = leave, strong = false) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                 }
                 Text(
-                    text = stringResource(R.string.settings_title),
+                    text = "Settings",
                     style = MaterialTheme.typography.headlineMedium,
                     modifier = Modifier
                         .weight(1f)
@@ -155,11 +172,7 @@ fun SettingsScreen(
                 AnimatedVisibility(visible = dirty, enter = fadeIn() + scaleIn(), exit = fadeOut() + scaleOut()) {
                     AccentButton(onClick = save, contentPadding = PaddingValues(horizontal = 18.dp, vertical = 10.dp)) {
                         Icon(Icons.Filled.Done, contentDescription = null)
-                        Text(
-                            text = stringResource(R.string.settings_save),
-                            style = MaterialTheme.typography.titleSmall,
-                            modifier = Modifier.padding(start = 6.dp),
-                        )
+                        Text("Save", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(start = 6.dp))
                     }
                 }
             }
@@ -169,54 +182,104 @@ fun SettingsScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                item(key = "export") { ExportSection(sections) }
+                item(key = "data") {
+                    Section("Your data") {
+                        Column {
+                            SettingRow(
+                                title = "Export everything",
+                                subtitle = "One JSON file: people, relations, what you said, ties and every setting. " +
+                                    "Saved only where you choose.",
+                                onClick = { exportFile.launch("sangatai-${LocalDate.now()}.json") },
+                            )
+                            SettingRow(
+                                title = "What's stored on this phone",
+                                subtitle = "Every file the app and its libraries keep",
+                                onClick = { scope.launch { inventory = viewModel.inventory() } },
+                            )
+                            if (legacyNotes > 0) {
+                                SettingRow(
+                                    title = "Delete old notes ($legacyNotes)",
+                                    subtitle = "Notes from before SangatAI mapped people. They're not shown anywhere; " +
+                                        "export first to keep them.",
+                                    onClick = { confirm = CONFIRM_NOTES },
+                                    titleColor = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                            SettingRow(
+                                title = "Delete my circle",
+                                subtitle = "Every person, relation, tie and everything you said. Settings stay.",
+                                onClick = { confirm = CONFIRM_GRAPH },
+                                titleColor = MaterialTheme.colorScheme.error,
+                            )
+                            SettingRow(
+                                title = "Delete everything",
+                                subtitle = "All data, every setting and cache. Like a fresh install.",
+                                onClick = { confirm = CONFIRM_ALL },
+                                titleColor = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                }
+
                 item(key = "shortcuts") { ShortcutsSection() }
 
                 item(key = "model") {
-                    Section(R.string.settings_section_model) {
+                    Section("Model") {
                         Column {
                             SettingRow(
-                                title = stringResource(R.string.dashboard_use_preview),
-                                subtitle = stringResource(R.string.settings_use_preview_body),
-                                onClick = { onUsePreviewModelChange(!usePreviewModel) },
+                                title = "Try Gemini Nano preview builds first",
+                                subtitle = "If one fails, the next installed build takes over. All on-device.",
+                                onClick = { viewModel.setUsePreviewModel(!usePreviewModel) },
                                 trailing = { Switch(checked = usePreviewModel, onCheckedChange = null) },
                             )
-                            Text(
-                                text = stringResource(R.string.settings_model_specs),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                            SettingRow(
+                                title = "Last exchange with Gemini Nano",
+                                subtitle = trace?.let { "${it.label} · ${dateTime(it.at)}" }
+                                    ?: "Nothing yet. Kept in memory only, for tuning prompts.",
+                                enabled = trace != null,
+                                onClick = { showTrace = true },
+                            )
+                            SettingRow(
+                                title = "Rebuild search index",
+                                subtitle = "Re-embeds everyone's tags. Needed after changing tag fade or tags embedded.",
+                                onClick = {
+                                    viewModel.reembedAll { count ->
+                                        Toast.makeText(context, "Re-embedded $count people", Toast.LENGTH_SHORT).show()
+                                    }
+                                },
+                                trailing = { Icon(Icons.Filled.Refresh, contentDescription = null) },
                             )
                         }
                     }
                 }
 
                 item(key = "prompts") {
-                    Section(R.string.settings_section_prompts) {
+                    Section("Prompts") {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             Text(
-                                text = stringResource(R.string.settings_prompts_body),
+                                "What Gemini Nano is told. What you said goes between <<< and >>>. The app reads " +
+                                    "back the JSON keys shown in each prompt, so keep them when editing.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             PromptField(
-                                label = R.string.settings_note_prompt,
-                                value = shown(KEY_NOTE_PROMPT, tuning.notePrompt),
-                                onValueChange = { edit(KEY_NOTE_PROMPT, it) },
-                                onReset = { edit(KEY_NOTE_PROMPT, AiTuning().notePrompt) },
+                                label = "Finding people and relations",
+                                value = shown(KEY_INGEST, tuning.ingestPrompt),
+                                onValueChange = { edit(KEY_INGEST, it) },
+                                onReset = { edit(KEY_INGEST, CrmPrompts.INGEST) },
                             )
                             PromptField(
-                                label = R.string.settings_refine_prompt,
-                                value = shown(KEY_REFINE_PROMPT, tuning.refinePrompt),
-                                onValueChange = { edit(KEY_REFINE_PROMPT, it) },
-                                onReset = { edit(KEY_REFINE_PROMPT, AiTuning().refinePrompt) },
+                                label = "Who can help",
+                                value = shown(KEY_ASK, tuning.askPrompt),
+                                onValueChange = { edit(KEY_ASK, it) },
+                                onReset = { edit(KEY_ASK, CrmPrompts.ASK) },
                             )
                         }
                     }
                 }
 
-                item(key = "limits") {
-                    Section(R.string.settings_section_limits) {
+                item(key = "numbers") {
+                    Section("Numbers") {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                             NUMBER_FIELDS.forEach { field ->
                                 NumberField(
@@ -230,13 +293,13 @@ fun SettingsScreen(
                 }
 
                 item(key = "reset") {
-                    Section(R.string.settings_section_reset) {
+                    Section("Defaults") {
                         SettingRow(
-                            title = stringResource(R.string.settings_reset_all),
-                            subtitle = stringResource(R.string.settings_reset_all_body),
+                            title = "Reset prompts and numbers",
+                            subtitle = "Puts every prompt and number back to the built-in values.",
                             onClick = {
                                 edits = HashMap()
-                                onResetTuning()
+                                viewModel.resetTuning()
                             },
                             trailing = { Icon(Icons.Filled.Refresh, contentDescription = null) },
                         )
@@ -247,44 +310,113 @@ fun SettingsScreen(
             }
         }
     }
+
+    when (confirm) {
+        CONFIRM_NOTES -> ConfirmDialog(
+            title = "Delete old notes?",
+            body = "$legacyNotes notes are deleted for good.",
+            confirmText = "Delete",
+            onConfirm = {
+                confirm = null
+                viewModel.deleteLegacyNotes()
+            },
+            onDismiss = { confirm = null },
+        )
+        CONFIRM_GRAPH -> ConfirmDialog(
+            title = "Delete your circle?",
+            body = "Every person, relation, tie and everything you said is deleted for good. This can't be undone.",
+            confirmText = "Delete",
+            onConfirm = {
+                confirm = null
+                viewModel.wipe(WipeScope.SOCIAL_GRAPH) { Toast.makeText(context, "Deleted", Toast.LENGTH_SHORT).show() }
+            },
+            onDismiss = { confirm = null },
+        )
+        CONFIRM_ALL -> ConfirmDialog(
+            title = "Delete everything?",
+            body = "All data, every setting and cache are deleted for good. This can't be undone.",
+            confirmText = "Delete everything",
+            onConfirm = {
+                confirm = null
+                edits = HashMap()
+                viewModel.wipe(WipeScope.EVERYTHING) { Toast.makeText(context, "Deleted", Toast.LENGTH_SHORT).show() }
+            },
+            onDismiss = { confirm = null },
+        )
+    }
+
+    inventory?.let { files -> InventoryDialog(files, onDismiss = { inventory = null }) }
+
+    if (showTrace) {
+        val shownTrace = trace
+        if (shownTrace == null) {
+            LaunchedEffect(Unit) { showTrace = false }
+        } else {
+            TraceDialog(shownTrace, onClear = {
+                viewModel.clearTrace()
+                showTrace = false
+            }, onDismiss = { showTrace = false })
+        }
+    }
 }
 
 @Composable
-private fun ExportSection(sections: List<DaySection>) {
+private fun InventoryDialog(files: List<StoredFile>, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    val allSections by rememberUpdatedState(sections)
-    val saveExportFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/markdown")) { uri ->
-        if (uri != null) {
-            scope.launch {
-                val saved = saveExport(context, uri, exportMarkdown(context, allSections))
-                Toast.makeText(context, if (saved) R.string.export_saved else R.string.export_failed, Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-    val hasIdeas = sections.isNotEmpty()
-
-    Section(R.string.settings_section_export) {
-        Column {
-            SettingRow(
-                title = stringResource(R.string.export_share),
-                subtitle = if (hasIdeas) null else stringResource(R.string.settings_export_empty),
-                enabled = hasIdeas,
-                onClick = {
-                    if (!shareExport(context, exportMarkdown(context, sections))) {
-                        Toast.makeText(context, R.string.export_too_big, Toast.LENGTH_LONG).show()
-                        saveExportFile.launch(exportFileName())
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Stored on this phone") },
+        text = {
+            LazyColumn(Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                item {
+                    Text(
+                        "${files.size} files, ${Formatter.formatShortFileSize(context, files.sumOf { it.bytes })}",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+                items(files, key = { it.path }) { file ->
+                    Column {
+                        Text(file.path, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                        Text(
+                            "${Formatter.formatShortFileSize(context, file.bytes)} · ${file.owner}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                },
-                trailing = { Icon(Icons.Filled.Share, contentDescription = null) },
-            )
-            SettingRow(
-                title = stringResource(R.string.export_save),
-                enabled = hasIdeas,
-                onClick = { saveExportFile.launch(exportFileName()) },
-                trailing = { Icon(Icons.Filled.Done, contentDescription = null) },
-            )
-        }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
+}
+
+@Composable
+private fun TraceDialog(trace: AiTrace, onClear: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("${trace.label}${if (trace.retry) " (retry)" else ""}") },
+        text = {
+            Column(
+                Modifier
+                    .heightIn(max = 480.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                TraceBlock("Instruction", trace.instruction)
+                TraceBlock("Sent", trace.userTurn)
+                TraceBlock("Answer", trace.output ?: "(empty)")
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        dismissButton = { TextButton(onClick = onClear) { Text("Forget it") } },
+    )
+}
+
+@Composable
+private fun TraceBlock(title: String, body: String) {
+    Column {
+        Text(title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Text(body, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
     }
 }
 
@@ -295,21 +427,22 @@ private fun ShortcutsSection() {
     val canAddTile = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     if (!canPin && !canAddTile) return
 
-    Section(R.string.settings_section_shortcuts) {
+    Section("Shortcuts") {
         Column {
             if (canAddTile) {
                 SettingRow(
-                    title = stringResource(R.string.dashboard_add_tile),
+                    title = "Add Quick Settings tile",
+                    subtitle = "Swipe down and tell SangatAI about someone from anywhere",
                     onClick = { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) requestAddTile(context) },
                 )
             }
             if (canPin) {
                 SettingRow(
-                    title = stringResource(R.string.dashboard_pin_voice),
+                    title = "Add voice shortcut to home screen",
                     onClick = { QuickShortcuts.pinToHomeScreen(context, voice = true) },
                 )
                 SettingRow(
-                    title = stringResource(R.string.dashboard_pin_type),
+                    title = "Add type shortcut to home screen",
                     onClick = { QuickShortcuts.pinToHomeScreen(context, voice = false) },
                 )
             }
@@ -318,77 +451,16 @@ private fun ShortcutsSection() {
 }
 
 @Composable
-private fun Section(@StringRes title: Int, content: @Composable () -> Unit) {
-    Column(Modifier.padding(top = 12.dp)) {
-        Text(
-            text = stringResource(title),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 8.dp, bottom = 8.dp),
-        )
-        GlassPanel(Modifier.fillMaxWidth()) {
-            content()
-        }
-    }
-}
-
-@Composable
-private fun SettingRow(
-    title: String,
-    onClick: () -> Unit,
-    subtitle: String? = null,
-    enabled: Boolean = true,
-    trailing: (@Composable () -> Unit)? = null,
-) {
-    val alpha = if (enabled) 1f else 0.4f
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
-            )
-            if (subtitle != null) {
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
-                    modifier = Modifier.padding(top = 2.dp),
-                )
-            }
-        }
-        if (trailing != null) {
-            Box(Modifier.padding(start = 12.dp)) { trailing() }
-        }
-    }
-}
-
-@Composable
-private fun PromptField(
-    @StringRes label: Int,
-    value: String,
-    onValueChange: (String) -> Unit,
-    onReset: () -> Unit,
-) {
+private fun PromptField(label: String, value: String, onValueChange: (String) -> Unit, onReset: () -> Unit) {
     Column {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
             Text(
-                text = stringResource(label),
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                text = stringResource(R.string.settings_reset),
+                text = "Reset",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
-                    .clickable(role = Role.Button, onClick = onReset)
+                    .clickable(onClick = onReset)
                     .padding(horizontal = 8.dp, vertical = 6.dp),
             )
         }
@@ -399,7 +471,7 @@ private fun PromptField(
             minLines = 6,
             maxLines = 16,
             shape = RoundedCornerShape(16.dp),
-            colors = fieldColors(),
+            colors = glassFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = 120.dp)
@@ -414,47 +486,28 @@ private fun NumberField(field: NumberSpec, value: String, onValueChange: (String
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        label = { Text(stringResource(field.label)) },
-        supportingText = {
-            Text(
-                if (valid) {
-                    stringResource(field.help)
-                } else {
-                    stringResource(R.string.settings_out_of_range, field.rangeLabel())
-                }
-            )
-        },
+        label = { Text(field.label) },
+        supportingText = { Text(if (valid) field.help else "Enter a number from ${field.rangeLabel()}") },
         isError = !valid,
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = if (field.decimal) KeyboardType.Decimal else KeyboardType.Number),
         shape = RoundedCornerShape(16.dp),
-        colors = fieldColors(),
+        colors = glassFieldColors(),
         modifier = Modifier.fillMaxWidth(),
     )
 }
 
-@Composable
-private fun fieldColors() = Glass.colors.let { glass ->
-    OutlinedTextFieldDefaults.colors(
-        focusedContainerColor = glass.inset,
-        unfocusedContainerColor = glass.inset,
-        errorContainerColor = glass.inset,
-        focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-    )
-}
-
-/** One numeric limit: how to show it, check it, and write it back. */
+/** One numeric knob: how to show it, check it, and write it back. Ranges match [CrmTuning.sanitized]. */
 private class NumberSpec(
     val key: String,
-    @StringRes val label: Int,
-    @StringRes val help: Int,
+    val label: String,
+    val help: String,
     val range: ClosedFloatingPointRange<Float>,
-    val read: (AiTuning) -> Number,
-    val write: (AiTuning, Float) -> AiTuning,
+    val read: (CrmTuning) -> Number,
+    val write: (CrmTuning, Float) -> CrmTuning,
     val decimal: Boolean = false,
 ) {
-    fun format(tuning: AiTuning): String = read(tuning).toString()
+    fun format(tuning: CrmTuning): String = read(tuning).toString()
 
     fun parse(text: String): Float? = text.trim().toFloatOrNull()
         ?.takeIf { it in range && (decimal || it % 1f == 0f) }
@@ -466,35 +519,80 @@ private class NumberSpec(
     }
 }
 
-private fun IntRange.asFloats() = first.toFloat()..last.toFloat()
+private fun ints(
+    key: String,
+    label: String,
+    help: String,
+    range: IntRange,
+    read: (CrmTuning) -> Int,
+    write: (CrmTuning, Int) -> CrmTuning,
+) = NumberSpec(key, label, help, range.first.toFloat()..range.last.toFloat(), read, { t, v -> write(t, v.toInt()) })
+
+private fun decimals(
+    key: String,
+    label: String,
+    help: String,
+    range: ClosedFloatingPointRange<Float>,
+    read: (CrmTuning) -> Float,
+    write: (CrmTuning, Float) -> CrmTuning,
+) = NumberSpec(key, label, help, range, read, write, decimal = true)
 
 private val NUMBER_FIELDS = listOf(
-    NumberSpec("max_output_tokens", R.string.settings_output_tokens, R.string.settings_output_tokens_help,
-        AiSettings.OUTPUT_TOKENS.asFloats(), { it.maxOutputTokens }, { t, v -> t.copy(maxOutputTokens = v.toInt()) }),
-    NumberSpec("temperature", R.string.settings_temperature, R.string.settings_temperature_help,
-        AiSettings.TEMPERATURE, { it.temperature }, { t, v -> t.copy(temperature = v) }, decimal = true),
-    NumberSpec("top_k", R.string.settings_top_k, R.string.settings_top_k_help,
-        AiSettings.TOP_K.asFloats(), { it.topK }, { t, v -> t.copy(topK = v.toInt()) }),
-    NumberSpec("attempts", R.string.settings_attempts, R.string.settings_attempts_help,
-        AiSettings.ATTEMPTS.asFloats(), { it.attempts }, { t, v -> t.copy(attempts = v.toInt()) }),
-    NumberSpec("max_input_chars", R.string.settings_input_chars, R.string.settings_input_chars_help,
-        AiSettings.INPUT_CHARS.asFloats(), { it.maxInputChars }, { t, v -> t.copy(maxInputChars = v.toInt()) }),
-    NumberSpec("max_title_chars", R.string.settings_title_chars, R.string.settings_title_chars_help,
-        AiSettings.TITLE_CHARS.asFloats(), { it.maxTitleChars }, { t, v -> t.copy(maxTitleChars = v.toInt()) }),
-    NumberSpec("max_ask_chars", R.string.settings_ask_chars, R.string.settings_ask_chars_help,
-        AiSettings.ASK_CHARS.asFloats(), { it.maxAskChars }, { t, v -> t.copy(maxAskChars = v.toInt()) }),
-    NumberSpec("max_refine_dump_chars", R.string.settings_refine_dump_chars, R.string.settings_refine_dump_chars_help,
-        AiSettings.ASK_CHARS.asFloats(), { it.maxRefineDumpChars }, { t, v -> t.copy(maxRefineDumpChars = v.toInt()) }),
+    decimals("ingest_temperature", "Finding people: temperature", "Lower sticks to your words and the JSON shape.",
+        0f..2f, { it.ingestTemperature }, { t, v -> t.copy(ingestTemperature = v) }),
+    ints("ingest_top_k", "Finding people: top K", "How many likely words the model picks from at each step.",
+        1..128, { it.ingestTopK }, { t, v -> t.copy(ingestTopK = v) }),
+    ints("ingest_tokens", "Finding people: max output tokens", "Too low and long rants get cut off mid-JSON.",
+        64..4_096, { it.ingestMaxOutputTokens }, { t, v -> t.copy(ingestMaxOutputTokens = v) }),
+    decimals("ask_temperature", "Who can help: temperature", "Lower keeps reasons tied to the tags.",
+        0f..2f, { it.askTemperature }, { t, v -> t.copy(askTemperature = v) }),
+    ints("ask_top_k", "Who can help: top K", "How many likely words the model picks from at each step.",
+        1..128, { it.askTopK }, { t, v -> t.copy(askTopK = v) }),
+    ints("ask_tokens", "Who can help: max output tokens", "Room for the matches and their reasons.",
+        64..4_096, { it.askMaxOutputTokens }, { t, v -> t.copy(askMaxOutputTokens = v) }),
+    ints("attempts", "Attempts per model", "Tries before moving on to the other installed Nano builds.",
+        1..5, { it.attempts }, { t, v -> t.copy(attempts = v) }),
+    ints("max_rant", "Longest thing read (characters)", "Longer is cut. Too long and Gemini Nano refuses it.",
+        100..32_000, { it.maxRantChars }, { t, v -> t.copy(maxRantChars = v) }),
+    ints("max_query", "Longest question (characters)", "For Who can help.",
+        20..4_000, { it.maxQueryChars }, { t, v -> t.copy(maxQueryChars = v) }),
+    ints("tags_per_mention", "Tags per person per rant", "Extra tags the model invents are dropped.",
+        1..20, { it.maxTagsPerMention }, { t, v -> t.copy(maxTagsPerMention = v) }),
+    ints("tags_per_person", "Tags per person", "Over this, the weakest tags from rants go. Yours never do.",
+        5..500, { it.maxTagsPerPerson }, { t, v -> t.copy(maxTagsPerPerson = v) }),
+    decimals("half_life", "Tag fade (days)", "A tag counts half as much after this long unsaid. 0 never fades.",
+        0f..3_650f, { it.tagHalfLifeDays }, { t, v -> t.copy(tagHalfLifeDays = v) }),
+    ints("embed_tags", "Tags in search", "How many of someone's strongest tags Who can help searches.",
+        1..100, { it.embedTags }, { t, v -> t.copy(embedTags = v) }),
+    ints("pool", "Search pool", "Nearest people found before reranking.",
+        1..500, { it.retrievalPool }, { t, v -> t.copy(retrievalPool = v) }),
+    ints("shortlist", "Shortlist for Gemini Nano", "Candidates the model chooses from.",
+        1..50, { it.shortlistSize }, { t, v -> t.copy(shortlistSize = v) }),
+    decimals("lexical", "Exact word boost", "Added per tag word that's literally in the question.",
+        0f..1f, { it.lexicalBoost }, { t, v -> t.copy(lexicalBoost = v) }),
+    decimals("min_similarity", "Minimum similarity", "Candidates below this are dropped (−1 to 1).",
+        -1f..1f, { it.minSimilarity }, { t, v -> t.copy(minSimilarity = v) }),
+    ints("max_matches", "Matches shown", "Most people Who can help suggests.",
+        1..10, { it.maxMatches }, { t, v -> t.copy(maxMatches = v) }),
+    ints("candidate_tags", "Tags per candidate", "Tags shown to the model per person.",
+        1..40, { it.candidateTags }, { t, v -> t.copy(candidateTags = v) }),
+    ints("candidate_chars", "Candidate block (characters)", "Cap on everything sent about candidates.",
+        200..16_000, { it.candidateBlockChars }, { t, v -> t.copy(candidateBlockChars = v) }),
+    ints("clique", "Biggest group that makes ties", "Naming more people than this at once doesn't tie them all together.",
+        2..100, { it.maxCoMentionClique }, { t, v -> t.copy(maxCoMentionClique = v) }),
 )
 
-private const val KEY_NOTE_PROMPT = "note_prompt"
-private const val KEY_REFINE_PROMPT = "refine_prompt"
+private const val KEY_INGEST = "ingest_prompt"
+private const val KEY_ASK = "ask_prompt"
+private const val CONFIRM_NOTES = "notes"
+private const val CONFIRM_GRAPH = "graph"
+private const val CONFIRM_ALL = "all"
 
 /** The saved tuning with every valid edit applied; invalid numbers keep their saved value. */
-private fun applyEdits(saved: AiTuning, edits: Map<String, String>): AiTuning {
+private fun applyEdits(saved: CrmTuning, edits: Map<String, String>): CrmTuning {
     var result = saved
-    edits[KEY_NOTE_PROMPT]?.let { result = result.copy(notePrompt = it) }
-    edits[KEY_REFINE_PROMPT]?.let { result = result.copy(refinePrompt = it) }
+    edits[KEY_INGEST]?.let { result = result.copy(ingestPromptOverride = it) }
+    edits[KEY_ASK]?.let { result = result.copy(askPromptOverride = it) }
     NUMBER_FIELDS.forEach { field ->
         val value = edits[field.key]?.let(field::parse) ?: return@forEach
         result = field.write(result, value)
@@ -512,9 +610,9 @@ private fun requestAddTile(context: Context) {
         context.mainExecutor,
     ) { result ->
         val message = when (result) {
-            StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED -> R.string.dashboard_tile_added
-            StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED -> R.string.dashboard_tile_already_added
-            else -> R.string.dashboard_tile_not_added
+            StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED -> "Tile added. Swipe down to tell SangatAI about someone."
+            StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED -> "The tile is already in Quick Settings"
+            else -> "Tile wasn't added"
         }
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }

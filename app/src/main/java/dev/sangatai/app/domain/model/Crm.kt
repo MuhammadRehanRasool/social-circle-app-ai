@@ -24,6 +24,12 @@ data class Person(
     val createdAt: Long,
     val hasEmbedding: Boolean,
     val createdByUser: Boolean,
+    /** Who they are to the user ("cousin"), or null when nobody said. */
+    val relation: String?,
+    /** [relation] was set by the user, not heard in a rant. */
+    val relationByUser: Boolean,
+    /** How many times they came up. */
+    val mentionCount: Int,
 )
 
 data class Interaction(
@@ -43,8 +49,13 @@ data class Connection(
     val otherName: String,
     val coMentions: Int,
     val lastAt: Long,
+    /** Set by the user. */
     val labels: List<String>,
-)
+    /** Heard in rants, newest first. */
+    val aiLabels: List<String>,
+) {
+    val allLabels: List<String> get() = (labels + aiLabels).distinctBy { it.lowercase() }
+}
 
 data class PersonDetail(
     val person: Person,
@@ -64,13 +75,20 @@ data class Capture(
     val summary: String?,
     val mentionCount: Int,
     val createdAt: Long,
+    /** Who it was saved to. */
+    val people: List<String>,
 )
 
 sealed interface IngestOutcome {
     data object Empty : IngestOutcome
 
-    /** Processed: [mentionCount] people were updated or added. */
-    data class Saved(val captureId: Long, val summary: String, val mentionCount: Int) : IngestOutcome
+    /** Processed: [people] were updated or added, and [links] were heard between them. */
+    data class Saved(
+        val captureId: Long,
+        val summary: String,
+        val people: List<IngestedPerson>,
+        val links: List<IngestedLink>,
+    ) : IngestOutcome
 
     /** Kept, waiting for Gemini Nano (app backgrounded, model downloading...). */
     data class Queued(val captureId: Long, val reason: String?) : IngestOutcome
@@ -107,3 +125,31 @@ sealed interface AskOutcome {
         val degraded: String? = null,
     ) : AskOutcome
 }
+
+/** Someone a rant was saved to. */
+data class IngestedPerson(
+    val id: Long,
+    val name: String,
+    /** First heard in this rant. */
+    val isNew: Boolean,
+    val relation: String?,
+)
+
+/** A relation between two people heard in a rant. */
+data class IngestedLink(val a: String, val b: String, val label: String)
+
+/** An edge of the network graph. Each pair appears once, with [a] < [b]. */
+data class GraphEdge(
+    val a: Long,
+    val b: Long,
+    /** Rants that named both. */
+    val coMentions: Int,
+    /** The user's labels, then those heard in rants. */
+    val labels: List<String>,
+)
+
+/** Everyone and every known tie between them. The user is implicit: linked to every person. */
+data class SocialGraph(
+    val people: List<Person>,
+    val edges: List<GraphEdge>,
+)

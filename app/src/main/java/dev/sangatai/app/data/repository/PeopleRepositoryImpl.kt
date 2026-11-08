@@ -13,6 +13,7 @@ import dev.sangatai.app.data.crm.TagScoring
 import dev.sangatai.app.data.local.SangatDatabase
 import dev.sangatai.app.data.local.crm.CaptureDao
 import dev.sangatai.app.data.local.crm.CaptureEntity
+import dev.sangatai.app.data.local.crm.CaptureRow
 import dev.sangatai.app.data.local.crm.ConnectionDao
 import dev.sangatai.app.data.local.crm.ConnectionEntity
 import dev.sangatai.app.data.local.crm.ConnectionRow
@@ -21,6 +22,8 @@ import dev.sangatai.app.data.local.crm.InteractionLogEntity
 import dev.sangatai.app.data.local.crm.PersonDao
 import dev.sangatai.app.data.local.crm.PersonEntity
 import dev.sangatai.app.data.local.crm.PersonRow
+import dev.sangatai.app.data.local.crm.RelationFactDao
+import dev.sangatai.app.data.local.crm.RelationFactEntity
 import dev.sangatai.app.data.local.crm.Relation
 import dev.sangatai.app.data.local.crm.StringSet
 import dev.sangatai.app.data.local.crm.TagMap
@@ -29,12 +32,16 @@ import dev.sangatai.app.domain.model.AskOutcome
 import dev.sangatai.app.domain.model.Capture
 import dev.sangatai.app.domain.model.CaptureStatus
 import dev.sangatai.app.domain.model.Connection
+import dev.sangatai.app.domain.model.GraphEdge
+import dev.sangatai.app.domain.model.IngestedLink
+import dev.sangatai.app.domain.model.IngestedPerson
 import dev.sangatai.app.domain.model.IngestOutcome
 import dev.sangatai.app.domain.model.Interaction
 import dev.sangatai.app.domain.model.Person
 import dev.sangatai.app.domain.model.PersonDetail
 import dev.sangatai.app.domain.model.PersonMatch
 import dev.sangatai.app.domain.model.PersonTag
+import dev.sangatai.app.domain.model.SocialGraph
 import dev.sangatai.app.domain.repository.PeopleRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -51,6 +58,7 @@ class PeopleRepositoryImpl @Inject constructor(
     private val people: PersonDao,
     private val logs: InteractionLogDao,
     private val edges: ConnectionDao,
+    private val facts: RelationFactDao,
     private val captures: CaptureDao,
     private val ai: AICoreManager,
     private val embedder: TextEmbeddingEngine,
@@ -91,8 +99,25 @@ class PeopleRepositoryImpl @Inject constructor(
             }
         }
 
+    override fun observeGraph(): Flow<SocialGraph> =
+        combine(people.observeAll(), edges.observeAll()) { rows, edgeRows ->
+            val at = now()
+            val crm = tuning
+            SocialGraph(
+                people = rows.map { it.toDomain(at, crm) },
+                edges = edgeRows.filterNot { it.relation.isEmpty }.map { edge ->
+                    GraphEdge(
+                        a = edge.personA,
+                        b = edge.personB,
+                        coMentions = edge.relation.coMentions,
+                        labels = edge.relation.allLabels,
+                    )
+                },
+            )
+        }
+
     override fun observeCaptures(): Flow<List<Capture>> =
-        captures.observeAll().map { rows -> rows.map { it.toDomain() } }
+        captures.observeRows().map { rows -> rows.map { it.toDomain() } }
 
     // ---------------------------------------------------------------- ingestion
 
@@ -105,10 +130,31 @@ class PeopleRepositoryImpl @Inject constructor(
         drainPending()
         val capture = captures.get(id) ?: return IngestOutcome.Empty
         return when (capture.status) {
-            CaptureStatus.DONE -> IngestOutcome.Saved(id, capture.summary.orEmpty(), capture.mentionCount)
+            CaptureStatus.DONE -> saved(capture)
             CaptureStatus.PENDING -> IngestOutcome.Queued(id, capture.lastError)
             CaptureStatus.FAILED -> IngestOutcome.Failed(id, capture.lastError)
         }
+    }
+
+    /** Who a processed rant was saved to, and the relations it gave, for the "found" card. */
+    private suspend fun saved(capture: CaptureEntity): IngestOutcome.Saved {
+        val rows = people.byIds(logs.personIdsForCapture(capture.id)).associateBy { it.id }
+        val captureFacts = facts.forCapture(capture.id)
+        val heardRelation = captureFacts.filter { it.personB == null }.associate { it.personA to it.label }
+        val found = rows.values.sortedBy { it.name.lowercase(Locale.ROOT) }.map { person ->
+            IngestedPerson(
+                id = person.id,
+                name = person.name,
+                isNew = !person.createdByUser && logs.countForPerson(person.id) == 1,
+                relation = person.relationToUser ?: heardRelation[person.id],
+            )
+        }
+        val links = captureFacts.mapNotNull { fact ->
+            val a = rows[fact.personA] ?: return@mapNotNull null
+            val b = fact.personB?.let(rows::get) ?: return@mapNotNull null
+            IngestedLink(a.name, b.name, fact.label)
+        }
+        return IngestOutcome.Saved(capture.id, capture.summary.orEmpty(), found, links)
     }
 
     override suspend fun retryCapture(captureId: Long) {
@@ -170,6 +216,8 @@ class PeopleRepositoryImpl @Inject constructor(
         val ops = ArrayList<IndexOp>()
         // person id -> (interaction id, tags it contributed)
         val logged = LinkedHashMap<Long, Pair<Long, Set<String>>>()
+        // name key as the model said it -> person id, for the relations below
+        val idsByKey = HashMap<String, Long>()
 
         for (mention in extraction.mentioned) {
             val existing = resolvePerson(mention.name)
@@ -204,6 +252,7 @@ class PeopleRepositoryImpl @Inject constructor(
             val (row, op) = withEmbedding(merged, crm, stamp)
             val personId = if (existing == null) people.insert(row) else row.id.also { people.update(row) }
             ops += op.copy(personId = personId)
+            idsByKey[NameKey.of(mention.name)] = personId
 
             val previous = logged[personId]
             if (previous != null) {
@@ -224,6 +273,23 @@ class PeopleRepositoryImpl @Inject constructor(
                 )
             )
             logged[personId] = logId to contributed
+        }
+
+        // Relations, kept per rant so deleting it takes them back. A person's relation to the user
+        // is only shown while the user hasn't set one themselves.
+        val heard = HashSet<String>()
+        for (mention in extraction.mentioned) {
+            if (mention.relation.isEmpty()) continue
+            val id = idsByKey[NameKey.of(mention.name)] ?: continue
+            if (heard.add("$id|${mention.relation}")) {
+                facts.insert(RelationFactEntity(captureId = capture.id, personA = id, personB = null, label = mention.relation, timestamp = at))
+            }
+        }
+        for (link in extraction.links) {
+            val a = idsByKey[NameKey.of(link.a)] ?: continue
+            val b = idsByKey[NameKey.of(link.b)] ?: continue
+            if (a == b || !heard.add("${minOf(a, b)}|${maxOf(a, b)}|${link.label}")) continue
+            facts.insert(RelationFactEntity(captureId = capture.id, personA = a, personB = b, label = link.label, timestamp = at))
         }
 
         // Before the edges: the co-mention query skips rants naming more than maxCoMentionClique people.
@@ -258,9 +324,21 @@ class PeopleRepositoryImpl @Inject constructor(
         return candidates.singleOrNull()
     }
 
-    /** Edges of [personId] recomputed from interaction logs, keeping labels the user set. */
+    /**
+     * Edges of [personId] recomputed from interaction logs (named together) and relation facts
+     * (said to be related), keeping labels the user set.
+     */
     private suspend fun rebuildEdges(personId: Long, crm: CrmTuning) {
         val coMentions = logs.coMentions(personId, crm.maxCoMentionClique).associateBy { it.otherId }
+        val heard = HashMap<Long, MutableList<String>>()
+        for (fact in facts.pairFactsFor(personId)) {
+            val other = fact.otherId ?: continue
+            if (other == personId) continue
+            val labels = heard.getOrPut(other) { ArrayList() }
+            if (labels.none { it.equals(fact.label, ignoreCase = true) } && labels.size < MAX_HEARD_LABELS) {
+                labels += fact.label
+            }
+        }
         val seen = HashSet<Long>()
         for (edge in edges.forPerson(personId)) {
             val other = if (edge.personA == personId) edge.personB else edge.personA
@@ -269,19 +347,25 @@ class PeopleRepositoryImpl @Inject constructor(
             val relation = edge.relation.copy(
                 coMentions = co?.mentions ?: 0,
                 lastAt = co?.lastAt ?: edge.relation.lastAt,
+                aiLabels = heard[other].orEmpty(),
             )
             when {
-                relation.coMentions == 0 && relation.labels.isEmpty() -> edges.deleteById(edge.edgeId)
+                relation.isEmpty -> edges.deleteById(edge.edgeId)
                 relation != edge.relation -> edges.update(edge.copy(relation = relation))
             }
         }
-        for ((other, co) in coMentions) {
+        for (other in coMentions.keys + heard.keys) {
             if (other in seen || other == personId) continue
+            val co = coMentions[other]
             edges.insert(
                 ConnectionEntity(
                     personA = minOf(personId, other),
                     personB = maxOf(personId, other),
-                    relation = Relation(coMentions = co.mentions, lastAt = co.lastAt),
+                    relation = Relation(
+                        coMentions = co?.mentions ?: 0,
+                        lastAt = co?.lastAt ?: 0,
+                        aiLabels = heard[other].orEmpty(),
+                    ),
                 )
             )
         }
@@ -473,6 +557,15 @@ class PeopleRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun setRelation(personId: Long, relation: String?) {
+        val clean = relation?.replace(Regex("""\s+"""), " ")?.trim()?.lowercase(Locale.ROOT)
+            ?.take(MAX_LABEL_CHARS)?.takeIf { it.isNotEmpty() }
+        graphMutex.withLock {
+            val person = people.get(personId) ?: return@withLock
+            people.update(person.copy(relationToUser = clean, updatedAt = now()))
+        }
+    }
+
     override suspend fun addTag(personId: Long, tag: String): Boolean {
         val clean = TagScoring.normalize(tag) ?: return false
         editPerson(personId) { person, at ->
@@ -531,7 +624,7 @@ class PeopleRepositoryImpl @Inject constructor(
                     edge == null && clean.isNotEmpty() ->
                         edges.insert(ConnectionEntity(personA = a, personB = b, relation = Relation(labels = clean)))
                     edge == null -> Unit
-                    edge.relation.coMentions == 0 && clean.isEmpty() -> edges.deleteById(edge.edgeId)
+                    edge.relation.copy(labels = clean).isEmpty -> edges.deleteById(edge.edgeId)
                     else -> edges.update(edge.copy(relation = edge.relation.copy(labels = clean)))
                 }
                 Unit
@@ -549,6 +642,10 @@ class PeopleRepositoryImpl @Inject constructor(
                 val labeled = edges.forPerson(dropId).filter { it.relation.labels.isNotEmpty() }
 
                 logs.reassign(dropId, keepId)
+                // Relations heard about either now belong to the kept person; one between the two goes.
+                facts.reassignA(dropId, keepId)
+                facts.reassignB(dropId, keepId)
+                facts.deleteSelfLoops()
                 // Tags are rebuilt from the combined interactions; the user's own tags from both are kept.
                 val userTags = TagScoring.union(
                     TagMap(keep.dynamicTags.tags.filterValues { it.byUser }),
@@ -560,6 +657,7 @@ class PeopleRepositoryImpl @Inject constructor(
                         dynamicTags = userTags,
                         suppressedTags = StringSet(keep.suppressedTags.values + drop.suppressedTags.values),
                         createdByUser = keep.createdByUser || drop.createdByUser,
+                        relationToUser = keep.relationToUser ?: drop.relationToUser,
                         createdAt = minOf(keep.createdAt, drop.createdAt),
                         lastInteractionAt = maxOf(keep.lastInteractionAt, drop.lastInteractionAt),
                         updatedAt = now(),
@@ -611,6 +709,8 @@ class PeopleRepositoryImpl @Inject constructor(
         graphMutex.withLock {
             val ops = db.withTransaction {
                 val log = logs.get(interactionId) ?: return@withTransaction emptyList<IndexOp>()
+                // What that rant said about this person's relations goes with it.
+                log.captureId?.let { facts.deleteFor(it, log.personId) }
                 logs.deleteById(interactionId)
                 listOfNotNull(rebuildPerson(log.personId, tuning))
             }
@@ -690,6 +790,9 @@ class PeopleRepositoryImpl @Inject constructor(
             createdAt = createdAt,
             hasEmbedding = hasEmbedding,
             createdByUser = createdByUser,
+            relation = relationToUser ?: aiRelation,
+            relationByUser = relationToUser != null,
+            mentionCount = mentionCount,
         )
     }
 
@@ -710,9 +813,10 @@ class PeopleRepositoryImpl @Inject constructor(
         coMentions = relation.coMentions,
         lastAt = relation.lastAt,
         labels = relation.labels,
+        aiLabels = relation.aiLabels,
     )
 
-    private fun CaptureEntity.toDomain() = Capture(
+    private fun CaptureRow.toDomain() = Capture(
         id = id,
         rawText = rawText,
         status = status,
@@ -721,12 +825,14 @@ class PeopleRepositoryImpl @Inject constructor(
         summary = summary,
         mentionCount = mentionCount,
         createdAt = createdAt,
+        people = peopleNames?.split(CaptureRow.NAME_SEPARATOR)?.filter { it.isNotBlank() }?.distinct().orEmpty(),
     )
 
     private companion object {
         const val MAX_ATTEMPTS = 3
         const val EMBED_BATCH = 50
         const val MAX_LABEL_CHARS = 40
+        const val MAX_HEARD_LABELS = 3
         const val DAY_MS = 86_400_000L
         val WORD = Regex("""[^\p{L}\p{N}]+""")
 

@@ -13,7 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dagger.hilt.android.AndroidEntryPoint
 import dev.sangatai.app.R
-import dev.sangatai.app.domain.model.CaptureOutcome
+import dev.sangatai.app.domain.model.IngestOutcome
 import dev.sangatai.app.ui.theme.SangatTheme
 
 /** Transparent host for [CaptureSheet], launched from the tile and launcher shortcuts. */
@@ -49,12 +49,16 @@ class CaptureActivity : ComponentActivity() {
         }
     }
 
-    private fun showOutcome(outcome: CaptureOutcome) {
+    private fun showOutcome(outcome: IngestOutcome) {
         val message = when (outcome) {
-            is CaptureOutcome.Split -> getString(R.string.capture_result_split, outcome.title)
-            is CaptureOutcome.Queued -> getString(R.string.capture_result_queued)
-            is CaptureOutcome.Failed -> getString(R.string.capture_result_failed)
-            CaptureOutcome.Empty -> return
+            is IngestOutcome.Saved -> if (outcome.people.isEmpty()) {
+                getString(R.string.capture_result_nobody)
+            } else {
+                getString(R.string.capture_result_saved, outcome.people.joinToString(", ") { it.name })
+            }
+            is IngestOutcome.Queued -> getString(R.string.capture_result_queued)
+            is IngestOutcome.Failed -> getString(R.string.capture_result_failed)
+            IngestOutcome.Empty -> return
         }
         Toast.makeText(applicationContext, message, Toast.LENGTH_SHORT).show()
     }

@@ -35,4 +35,14 @@ data class Relation(
     @SerialName("last_at") val lastAt: Long = 0,
     /** Set by the user ("siblings", "coworkers"). Keeps the edge alive with zero co-mentions. */
     @SerialName("labels") val labels: List<String> = emptyList(),
-)
+    /**
+     * What the user's own words said about the pair ("married", "coworkers"), newest first.
+     * Rebuilt from `relation_facts`, so deleting the rant takes the label back.
+     */
+    @SerialName("ai_labels") val aiLabels: List<String> = emptyList(),
+) {
+    /** The user's labels first, then the ones heard in rants that they didn't already give. */
+    val allLabels: List<String> get() = (labels + aiLabels).distinctBy { it.lowercase() }
+
+    val isEmpty: Boolean get() = coMentions == 0 && labels.isEmpty() && aiLabels.isEmpty()
+}

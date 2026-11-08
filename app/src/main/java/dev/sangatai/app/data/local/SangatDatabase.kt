@@ -16,6 +16,8 @@ import dev.sangatai.app.data.local.crm.InteractionLogDao
 import dev.sangatai.app.data.local.crm.InteractionLogEntity
 import dev.sangatai.app.data.local.crm.PersonDao
 import dev.sangatai.app.data.local.crm.PersonEntity
+import dev.sangatai.app.data.local.crm.RelationFactDao
+import dev.sangatai.app.data.local.crm.RelationFactEntity
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -27,17 +29,19 @@ import kotlinx.serialization.json.Json
         CaptureEntity::class,
         InteractionLogEntity::class,
         ConnectionEntity::class,
+        RelationFactEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
 )
-@TypeConverters(Converters::class, CrmConverters::class)
+@TypeConverters(CrmConverters::class)
 abstract class SangatDatabase : RoomDatabase() {
     abstract fun ideaDao(): IdeaDao
     abstract fun personDao(): PersonDao
     abstract fun captureDao(): CaptureDao
     abstract fun interactionLogDao(): InteractionLogDao
     abstract fun connectionDao(): ConnectionDao
+    abstract fun relationFactDao(): RelationFactDao
 
     companion object {
         const val NAME = "sangatai.db"
@@ -105,6 +109,29 @@ abstract class SangatDatabase : RoomDatabase() {
                         "ON `connections` (`person_a`, `person_b`)"
                 )
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_connections_person_b` ON `connections` (`person_b`)")
+            }
+        }
+
+        /**
+         * Relationships: who each person is to the user, set by hand, and the relations heard in
+         * rants. Only adds; nothing existing changes. The SQL matches Room's generated schema.
+         */
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `people` ADD COLUMN `relation_to_user` TEXT")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `relation_facts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`capture_id` INTEGER NOT NULL, `person_a` INTEGER NOT NULL, `person_b` INTEGER, " +
+                        "`label` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, " +
+                        "FOREIGN KEY(`capture_id`) REFERENCES `captures`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                        "FOREIGN KEY(`person_a`) REFERENCES `people`(`id`) ON UPDATE CASCADE ON DELETE CASCADE , " +
+                        "FOREIGN KEY(`person_b`) REFERENCES `people`(`id`) ON UPDATE CASCADE ON DELETE CASCADE )"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS `index_relation_facts_capture_id` ON `relation_facts` (`capture_id`)"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_relation_facts_person_a` ON `relation_facts` (`person_a`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_relation_facts_person_b` ON `relation_facts` (`person_b`)")
             }
         }
 

@@ -7,20 +7,22 @@ package dev.sangatai.app.data.ai
 object CrmPrompts {
 
     val INGEST = """
-        You keep a private address book for the user. Between <<< and >>> is something the user said out loud, possibly messy speech-to-text, about people in their life.
-        Find every other person the user mentions and describe each one with short tags.
+        You keep a private map of the people in the user's life. Between <<< and >>> is something the user said out loud, possibly messy speech-to-text, possibly mixing English with Urdu or Hindi.
+        Find every other person the user mentions, who each one is to the user, and how they are connected to each other.
         Rules:
         - People only. Never include the user (I, me, my, myself). Skip companies, places, pets and things.
         - name: the name as said ("Ali", "Sara Khan"). If there is no name, use the relationship with a capital letter ("Mom", "Boss", "Landlord").
-        - tags: 1 to 4 per person, lowercase_snake_case, 1 to 3 words each. Invent them from what was said: skills (car_expert), reliability (flaked_today, always_on_time), trust (high_trust), how they treat the user (supportive), life events (new_job), what they could help with (knows_landlords).
-        - Only tags the words support. Never guess. Same idea, same tag: prefer short common words.
+        - relation: who they are to the user, 1 or 2 lowercase English words: friend, cousin, brother, mother, wife, boss, colleague, classmate, neighbor, client, teacher. Use "" when the words don't say.
+        - tags: 0 to 4 per person, lowercase_snake_case, 1 to 3 words each. Invent them from what was said: skills (car_expert), reliability (flaked_today, always_on_time), trust (high_trust), how they treat the user (supportive), life events (new_job), what they could help with (knows_landlords).
+        - links: pairs of mentioned people the words connect to each other, with how: married, siblings, parent, coworkers, friends, classmates, dating, neighbors. Only what was said or clearly meant. [] when none.
+        - Only what the words support. Never guess. Same idea, same word: prefer short common words.
         - interaction_summary: one sentence of at most 20 words about what happened, in the user's language.
-        - Output ONLY one JSON object in exactly this shape. Every value is a plain string or a list of plain strings. Stop right after the closing brace.
-        {"interaction_summary":"...","mentioned":[{"name":"...","tags":["..."]}]}
+        - Output ONLY one JSON object in exactly this shape. Every value is a plain string or a list. Stop right after the closing brace.
+        {"interaction_summary":"...","mentioned":[{"name":"...","relation":"...","tags":["..."]}],"links":[{"a":"...","b":"...","relation":"..."}]}
         Example input: <<<nobody really, just tired, work was long>>>
-        Example output: {"interaction_summary":"A long, tiring day at work.","mentioned":[]}
-        Example input: <<<ugh Bilal bailed on the gym again third time this month. at least Sara sorted my brakes for free, she really knows engines>>>
-        Example output: {"interaction_summary":"Bilal skipped the gym again; Sara fixed my brakes for free.","mentioned":[{"name":"Bilal","tags":["flaked_today","unreliable_plans","gym_buddy"]},{"name":"Sara","tags":["car_expert","generous","high_trust"]}]}
+        Example output: {"interaction_summary":"A long, tiring day at work.","mentioned":[],"links":[]}
+        Example input: <<<ugh my cousin Bilal bailed on the gym again. at least Sara sorted my brakes for free, she really knows engines. her husband Omar works with me>>>
+        Example output: {"interaction_summary":"Cousin Bilal skipped the gym; Sara fixed my brakes; her husband Omar is my coworker.","mentioned":[{"name":"Bilal","relation":"cousin","tags":["flaked_today","gym_buddy"]},{"name":"Sara","relation":"","tags":["car_expert","generous"]},{"name":"Omar","relation":"colleague","tags":[]}],"links":[{"a":"Sara","b":"Omar","relation":"married"}]}
     """.trimIndent()
 
     const val INGEST_RETRY_SUFFIX =

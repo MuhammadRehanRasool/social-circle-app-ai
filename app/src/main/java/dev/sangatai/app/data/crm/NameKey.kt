@@ -8,6 +8,7 @@ object NameKey {
     private val MARKS = Regex("""\p{Mn}+""")
     private val APOSTROPHES = Regex("""['’`]""")
     private val NON_NAME = Regex("""[^\p{L}\p{N}]+""")
+    private val CONTROL = Regex("""\p{Cntrl}""")
 
     fun of(name: String): String =
         Normalizer.normalize(name, Normalizer.Form.NFKD)
@@ -30,5 +31,6 @@ object NameKey {
 
     /** A name as the user would write it: trimmed, single-spaced, at most [maxChars]. */
     fun clean(name: String, maxChars: Int = 60): String =
-        name.trim().trim('"', '\'', '.', ',', ':', ';', '*', '-').replace(Regex("""\s+"""), " ").take(maxChars).trim()
+        name.replace(CONTROL, " ")
+            .trim().trim('"', '\'', '.', ',', ':', ';', '*', '-').replace(Regex("""\s+"""), " ").take(maxChars).trim()
 }

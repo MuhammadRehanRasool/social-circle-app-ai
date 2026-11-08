@@ -3,191 +3,36 @@
     <string name="app_name">SangatAI</string>
 
     <string name="tile_label">SangatAI</string>
-    <string name="tile_subtitle">Dump a thought</string>
+    <string name="tile_subtitle">Tell about someone</string>
 
-    <string name="shortcut_voice_short">Voice dump</string>
-    <string name="shortcut_voice_long">Dump an idea by voice</string>
-    <string name="shortcut_type_short">Type dump</string>
-    <string name="shortcut_type_long">Dump an idea by typing</string>
+    <string name="shortcut_voice_short">Say it</string>
+    <string name="shortcut_voice_long">Tell SangatAI about someone by voice</string>
+    <string name="shortcut_type_short">Type it</string>
+    <string name="shortcut_type_long">Tell SangatAI about someone by typing</string>
 
-    <string name="capture_title">Dump it</string>
-    <string name="capture_hint">Messy is fine. Gemini Nano will turn it into a clear note.</string>
-    <string name="capture_voice">Speak your idea</string>
+    <string name="capture_title">Who did you see?</string>
+    <string name="capture_hint">Talk about your day and the people in it. Who they are to you and how they know each other is picked up too.</string>
+    <string name="capture_voice">Say it</string>
     <string name="capture_voice_stop">Stop listening</string>
     <string name="capture_listening">Listening on-device…</string>
-    <string name="capture_submit">Polish it</string>
-    <string name="capture_splitting">Polishing on-device…</string>
+    <string name="capture_submit">Map it</string>
+    <string name="capture_splitting">Finding the people in it…</string>
     <string name="capture_on_device">On-device</string>
-    <string name="capture_result_split">Polished: %1$s</string>
-    <string name="capture_result_queued">Saved. It\'ll be polished when Gemini Nano is ready.</string>
-    <string name="capture_result_failed">Saved, but Gemini Nano couldn\'t polish it</string>
+    <string name="capture_result_saved">Saved to %1$s</string>
+    <string name="capture_result_nobody">Saved. Nobody was mentioned.</string>
+    <string name="capture_result_queued">Saved. It\'ll be read when Gemini Nano is ready.</string>
+    <string name="capture_result_failed">Saved, but Gemini Nano couldn\'t read it</string>
 
     <string name="voice_unavailable">On-device speech recognition isn\'t available on this phone</string>
-    <string name="voice_permission_denied">Microphone permission is needed for voice dumps</string>
+    <string name="voice_permission_denied">Microphone permission is needed to talk to SangatAI</string>
     <string name="voice_language_downloading">No offline speech pack for %1$s yet. Android is downloading it; try again in a minute.</string>
     <string name="voice_model_downloading">The on-device speech model is still downloading. Try again in a minute.</string>
     <string name="voice_busy">The speech recognizer is busy. Try again.</string>
     <string name="voice_error">Voice input stopped unexpectedly</string>
 
-    <string name="dashboard_fab">Dump</string>
-    <string name="dashboard_voice">Dump by voice</string>
-    <string name="dashboard_add_tile">Add Quick Settings tile</string>
-    <string name="dashboard_pin_voice">Add voice dump to home screen</string>
-    <string name="dashboard_pin_type">Add type dump to home screen</string>
-
-    <string name="settings_title">Settings</string>
-    <string name="settings_back">Back</string>
-    <string name="settings_save">Save</string>
-    <string name="settings_reset">Reset</string>
-    <string name="settings_section_export">Export</string>
-    <string name="settings_export_empty">Nothing to export yet</string>
-    <string name="settings_section_shortcuts">Shortcuts</string>
-    <string name="settings_section_model">Model</string>
-    <string name="settings_use_preview_body">Nano 4 Full goes first, then Nano 4 Fast, then Nano 3. One flops, the next one steps up fr.</string>
-    <string name="settings_model_specs">🧠 Nano 4 Full: the big brain, deep notes
-⚡ Nano 4 Fast: 2B params, ~19 tok/s, 60% less battery, no cap
-🐢 Nano 3: ~3.2B params, ~4.8 GB, the reliable OG
-All on-device. Your dumps never touch the cloud.</string>
-    <string name="capture_attach">Add a pic</string>
-    <string name="capture_camera">Snap it 📸</string>
-    <string name="capture_gallery">Pull from gallery 🖼️</string>
-    <string name="capture_remove_image">Yeet the pic</string>
-    <string name="capture_image_failed">That pic is not loading bestie, try another</string>
-    <string name="settings_section_prompts">Prompts</string>
-    <string name="settings_prompts_body">What Gemini Nano is told before your dump, which follows between &lt;&lt;&lt; and &gt;&gt;&gt;. The app takes the Category line and the first # heading out of the answer as the category and title, and shows the rest as Markdown.</string>
-    <string name="settings_note_prompt">Note prompt</string>
-    <string name="settings_refine_prompt">Refine prompt</string>
-    <string name="settings_section_limits">Limits</string>
-    <string name="settings_out_of_range">Enter a number from %1$s</string>
-    <string name="settings_output_tokens">Max output tokens</string>
-    <string name="settings_output_tokens_help">How long a note can be. A note that hits this stops mid-sentence. Some Nano builds cap or refuse high values.</string>
-    <string name="settings_temperature">Temperature</string>
-    <string name="settings_temperature_help">Higher writes more freely; lower sticks closer to your words and the format.</string>
-    <string name="settings_top_k">Top K</string>
-    <string name="settings_top_k_help">How many likely words the model picks from at each step.</string>
-    <string name="settings_attempts">Attempts per model</string>
-    <string name="settings_attempts_help">Tries after an empty answer before moving on to the other installed Nano builds.</string>
-    <string name="settings_input_chars">Max dump length (characters)</string>
-    <string name="settings_input_chars_help">Longer dumps are cut to this. Too long and Gemini Nano rejects the request.</string>
-    <string name="settings_title_chars">Max title length (characters)</string>
-    <string name="settings_title_chars_help">Longer titles are cut.</string>
-    <string name="settings_ask_chars">Max refine request (characters)</string>
-    <string name="settings_ask_chars_help">How much of what you type in Refine is sent.</string>
-    <string name="settings_refine_dump_chars">Original dump sent with refine (characters)</string>
-    <string name="settings_refine_dump_chars_help">Background the model sees while refining.</string>
-    <string name="settings_section_reset">Defaults</string>
-    <string name="settings_reset_all">Reset prompts and limits</string>
-    <string name="settings_reset_all_body">Puts every prompt and limit back to the built-in values.</string>
-
     <string name="widget_label">SangatAI</string>
-    <string name="widget_description">Tap to type an idea, or tap the mic to say it</string>
-    <string name="widget_hint">Dump an idea…</string>
-    <string name="widget_prompt">What\'s on your mind?</string>
+    <string name="widget_description">Tap the mic and tell SangatAI about someone</string>
+    <string name="widget_hint">Who did you see today?</string>
+    <string name="widget_prompt">Who did you see?</string>
     <string name="widget_type">Type</string>
-    <string name="dashboard_tile_added">Tile added. Swipe down to dump ideas anywhere.</string>
-    <string name="dashboard_tile_already_added">The tile is already in Quick Settings</string>
-    <string name="dashboard_tile_not_added">Tile wasn\'t added</string>
-    <string name="dashboard_empty_title">Nothing dumped yet</string>
-    <string name="dashboard_empty_body">Tap Dump, or add the Quick Settings tile, and get the chaos out of your head.</string>
-
-    <string name="ai_status_unknown">On-device · offline</string>
-    <string name="ai_status_checking">Waking up Gemini Nano…</string>
-    <string name="ai_status_downloading">Downloading Gemini Nano…</string>
-    <string name="ai_status_downloading_percent">Downloading Gemini Nano… %1$d%%</string>
-    <string name="ai_status_ready">Gemini Nano ready · on-device</string>
-    <string name="ai_status_ready_model">Ready · %1$s</string>
-    <string name="dashboard_use_preview">Run Gemini Nano 4 (preview)</string>
-    <string name="ai_status_unavailable">AI offline · ideas are still saved</string>
-
-    <string name="idea_splitting">Polishing on-device…</string>
-    <string name="idea_waiting">Waiting for Gemini Nano</string>
-    <string name="idea_failed">Couldn\'t polish this one</string>
-    <string name="idea_retry">Retry</string>
-    <string name="idea_delete">Delete</string>
-    <string name="idea_delete_title">Delete this idea?</string>
-    <string name="idea_delete_body">“%1$s” and its note will be gone for good.</string>
-    <string name="idea_delete_cancel">Cancel</string>
-    <string name="idea_category">Category</string>
-    <string name="idea_category_change">Change category</string>
-    <string name="idea_share">Share</string>
-    <string name="idea_share_title">Share idea</string>
-    <string name="idea_original">OG dump</string>
-    <string name="idea_original_peek">OG dump · tap to peek 👀</string>
-    <string name="idea_expand">Show note</string>
-    <string name="idea_collapse">Hide note</string>
-    <string name="idea_refine">Refine</string>
-
-    <string name="refine_title">Refine</string>
-    <string name="refine_hint">Tell Gemini Nano what to change in the note…</string>
-    <string name="refine_send">Send</string>
-    <string name="refine_thinking">Refining on-device…</string>
-    <string name="refine_suggest_shorter">Make it shorter</string>
-    <string name="refine_suggest_detail">Add more detail</string>
-    <string name="refine_suggest_steps">Add next steps</string>
-    <string name="refine_suggest_title">Shorter title</string>
-
-    <string name="export_share">Share all ideas</string>
-    <string name="export_save">Save all as Markdown file</string>
-    <string name="export_share_title">Share all ideas</string>
-    <string name="export_too_big">Too many ideas to share at once. Saving as a file instead.</string>
-    <string name="export_saved">Exported</string>
-    <string name="export_failed">Couldn\'t write the file</string>
-    <string name="export_unsplit">Not polished yet:</string>
-
-    <string name="timeline_days">Days</string>
-    <string name="timeline_months">Months</string>
-    <string name="timeline_years">Years</string>
-    <string name="filter_all">All</string>
-    <plurals name="timeline_ideas">
-        <item quantity="one">%1$d idea</item>
-        <item quantity="other">%1$d ideas</item>
-    </plurals>
-
-    <string name="category_personal">Personal</string>
-    <string name="category_work">Work</string>
-    <string name="category_health">Health</string>
-    <string name="category_learning">Learning</string>
-    <string name="category_money">Money</string>
-    <string name="category_creative">Creative</string>
-    <string name="category_tech">Tech</string>
-    <string name="category_other">Other</string>
-
-    <string name="day_today">Today</string>
-    <string name="day_yesterday">Yesterday</string>
-
-    <string name="persona_title">Your persona</string>
-    <string name="persona_expand">Show persona</string>
-    <string name="persona_collapse">Hide persona</string>
-    <string name="persona_building">Reading your dumps on-device…</string>
-    <plurals name="persona_locked">
-        <item quantity="one">Dump %1$d more thought and Nano learns how you write</item>
-        <item quantity="other">Dump %1$d more thoughts and Nano learns how you write</item>
-    </plurals>
-    <string name="persona_not_learned">Not learned yet. Tap Learn my style.</string>
-    <string name="persona_voice">Voice</string>
-    <string name="persona_tone">Tone</string>
-    <string name="persona_mood">Mood</string>
-    <string name="persona_structure">Structure</string>
-    <string name="persona_detail">Detail</string>
-    <string name="persona_focus">Focus</string>
-    <string name="persona_use">Write my notes in this style</string>
-    <string name="persona_use_body">Only these few words go to Gemini Nano with each dump, never your other dumps.</string>
-    <plurals name="persona_learned">
-        <item quantity="one">Learned from %1$d dump · %2$s</item>
-        <item quantity="other">Learned from %1$d dumps · %2$s</item>
-    </plurals>
-    <string name="persona_learn">Learn my style</string>
-    <string name="persona_relearn">Re-learn</string>
-    <string name="persona_forget">Forget</string>
-    <plurals name="persona_stat_dumps">
-        <item quantity="one">📝 %1$d dump</item>
-        <item quantity="other">📝 %1$d dumps</item>
-    </plurals>
-    <string name="persona_stat_streak">🔥 %1$d-day streak</string>
-    <string name="persona_stat_words">💬 ~%1$d words a dump</string>
-    <string name="persona_stat_morning">🌅 Morning brain</string>
-    <string name="persona_stat_afternoon">☀️ Afternoon thinker</string>
-    <string name="persona_stat_evening">🌆 Evening dumper</string>
-    <string name="persona_stat_night">🌙 Night owl</string>
-    <string name="persona_mix">Mostly %1$s</string>
 </resources>

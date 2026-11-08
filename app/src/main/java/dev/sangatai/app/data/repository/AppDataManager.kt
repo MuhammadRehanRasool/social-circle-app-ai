@@ -5,20 +5,17 @@ import androidx.room.withTransaction
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dev.sangatai.app.data.ai.AICoreManager
 import dev.sangatai.app.data.ai.AiSettings
-import dev.sangatai.app.data.ai.AiTuning
 import dev.sangatai.app.data.ai.CrmSettings
 import dev.sangatai.app.data.ai.CrmTuning
-import dev.sangatai.app.data.ai.PersonaStore
 import dev.sangatai.app.data.ai.embedding.PersonVectorIndex
 import dev.sangatai.app.data.ai.embedding.TextEmbeddingEngine
 import dev.sangatai.app.data.local.SangatDatabase
 import dev.sangatai.app.data.local.crm.CrmJson
-import dev.sangatai.app.domain.model.Persona
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -40,10 +37,10 @@ data class StoredFile(
 )
 
 enum class WipeScope {
-    /** People, rants, interactions and connections. Notes and settings stay. */
+    /** People, rants, interactions, relations and connections. Old notes and settings stay. */
     SOCIAL_GRAPH,
 
-    /** Everything this app stores: the whole database, every setting, the persona, caches. */
+    /** Everything this app stores: the whole database, every setting, caches. */
     EVERYTHING,
 }
 
@@ -57,7 +54,6 @@ class AppDataManager @Inject constructor(
     private val db: SangatDatabase,
     private val ai: AICoreManager,
     private val aiSettings: AiSettings,
-    private val personaStore: PersonaStore,
     private val crmSettings: CrmSettings,
     private val index: PersonVectorIndex,
     private val embedder: TextEmbeddingEngine,
@@ -69,8 +65,8 @@ class AppDataManager @Inject constructor(
 
     /**
      * Writes everything the app knows as one JSON document: people (with tag history, aliases and
-     * removed tags), every rant, interaction and connection, the notes, the persona, and every
-     * setting including edited prompts. Vectors are left out unless [includeVectors]; they can
+     * removed tags), every rant, interaction, relation and connection, old notes, and every setting
+     * including edited prompts. Vectors are left out unless [includeVectors]; they can
      * always be rebuilt from the tags. [out] is flushed, not closed.
      */
     suspend fun exportJson(out: OutputStream, includeVectors: Boolean = false) = withContext(Dispatchers.IO) {
@@ -81,6 +77,7 @@ class AppDataManager @Inject constructor(
                 captures = db.captureDao().all(),
                 interactions = db.interactionLogDao().all(),
                 connections = db.connectionDao().all(),
+                relations = db.relationFactDao().all(),
                 notes = db.ideaDao().all(),
             )
         }
@@ -94,14 +91,8 @@ class AppDataManager @Inject constructor(
 
                 put("settings", buildJsonObject {
                     put("socialGraph", pretty.encodeToJsonElement(CrmTuning.serializer(), crmSettings.tuning.value))
-                    put("notes", aiTuningJson(aiSettings.tuning.value))
                     put("usePreviewModel", aiSettings.usePreviewModel.value)
-                    put("personaEnabled", personaStore.enabled.value)
                 })
-                put(
-                    "persona",
-                    personaStore.persona.value?.let { pretty.encodeToJsonElement(Persona.serializer(), it) } ?: JsonNull,
-                )
 
                 put("people", buildJsonArray {
                     for (p in snapshot.people) add(buildJsonObject {
@@ -111,6 +102,7 @@ class AppDataManager @Inject constructor(
                         put("aliases", strings(p.aliases.values))
                         put("tags", CrmJson.json.parseToJsonElement(CrmJson.encodeTags(p.dynamicTags)))
                         put("suppressedTags", strings(p.suppressedTags.values))
+                        put("relationToUser", p.relationToUser)
                         put("nameLocked", p.nameLocked)
                         put("createdByUser", p.createdByUser)
                         put("createdAt", p.createdAt)
@@ -157,6 +149,18 @@ class AppDataManager @Inject constructor(
                         put("coMentions", e.relation.coMentions)
                         put("lastAt", e.relation.lastAt)
                         put("labels", strings(e.relation.labels))
+                        put("heardLabels", strings(e.relation.aiLabels))
+                    })
+                })
+
+                put("relations", buildJsonArray {
+                    for (r in snapshot.relations) add(buildJsonObject {
+                        put("id", r.id)
+                        put("captureId", r.captureId)
+                        put("personA", r.personA)
+                        put("personB", r.personB)
+                        put("label", r.label)
+                        put("timestamp", r.timestamp)
                     })
                 })
 
@@ -167,12 +171,12 @@ class AppDataManager @Inject constructor(
                         put("title", i.ideaTitle)
                         put("body", i.body)
                         put("category", i.category)
-                        put("status", i.status.name)
+                        put("status", i.status)
                         put("attempts", i.attempts)
                         put("lastError", i.lastError)
                         put("createdAt", i.createdAt)
                         put("updatedAt", i.updatedAt)
-                        put("refinements", i.refinements?.let { r -> runCatching { Json.parseToJsonElement(r) }.getOrNull() } ?: JsonNull)
+                        put("refinements", i.refinements?.let { r -> runCatching { CrmJson.json.parseToJsonElement(r) }.getOrNull() } ?: JsonNull)
                     })
                 })
             }
@@ -204,7 +208,7 @@ class AppDataManager @Inject constructor(
      */
     suspend fun wipe(scope: WipeScope) = withContext(Dispatchers.IO) {
         db.withTransaction {
-            // Interactions and connections cascade from people.
+            // Interactions, relations and connections cascade from people and rants.
             db.personDao().deleteAll()
             db.captureDao().deleteAll()
             if (scope == WipeScope.EVERYTHING) db.ideaDao().deleteAll()
@@ -214,15 +218,21 @@ class AppDataManager @Inject constructor(
 
         if (scope == WipeScope.EVERYTHING) {
             crmSettings.reset()
-            aiSettings.setTuning(AiTuning())
-            aiSettings.setUsePreviewModel(true)
-            personaStore.clear()
-            personaStore.setEnabled(true)
+            aiSettings.clear()
             context.cacheDir.listFiles()?.forEach { it.deleteRecursively() }
             // Usage metrics ML Kit queues for upload. The app has no network access, so they can't
             // be sent; they're deleted anyway so nothing is left behind.
             runCatching { context.deleteDatabase(DATATRANSPORT_DB) }
         }
+        compact()
+    }
+
+    /** How many notes from the note-taking days are still stored. */
+    fun observeLegacyNoteCount(): Flow<Int> = db.ideaDao().observeCount()
+
+    /** Deletes the old notes for good. Export first to keep them. */
+    suspend fun deleteLegacyNotes() = withContext(Dispatchers.IO) {
+        db.ideaDao().deleteAll()
         compact()
     }
 
@@ -241,30 +251,17 @@ class AppDataManager @Inject constructor(
         val captures: List<dev.sangatai.app.data.local.crm.CaptureEntity>,
         val interactions: List<dev.sangatai.app.data.local.crm.InteractionLogEntity>,
         val connections: List<dev.sangatai.app.data.local.crm.ConnectionEntity>,
+        val relations: List<dev.sangatai.app.data.local.crm.RelationFactEntity>,
         val notes: List<dev.sangatai.app.data.local.IdeaEntity>,
     )
 
     private fun strings(values: Collection<String>): JsonArray = JsonArray(values.map { JsonPrimitive(it) })
 
-    private fun aiTuningJson(t: AiTuning): JsonElement = buildJsonObject {
-        put("notePrompt", t.notePrompt)
-        put("refinePrompt", t.refinePrompt)
-        put("maxOutputTokens", t.maxOutputTokens)
-        put("temperature", t.temperature)
-        put("topK", t.topK)
-        put("attempts", t.attempts)
-        put("maxInputChars", t.maxInputChars)
-        put("maxTitleChars", t.maxTitleChars)
-        put("maxAskChars", t.maxAskChars)
-        put("maxRefineDumpChars", t.maxRefineDumpChars)
-    }
-
     private fun ownerOf(path: String): String = when {
-        path.startsWith("databases/${SangatDatabase.NAME}") -> "SangatAI: notes and social graph"
+        path.startsWith("databases/${SangatDatabase.NAME}") -> "SangatAI: your people, rants and relations"
         path.startsWith("databases/$DATATRANSPORT_DB") -> "ML Kit / MediaPipe: queued usage metrics (never sent, no network access)"
         path.startsWith("shared_prefs/${CrmSettings.PREFS_NAME}") -> "SangatAI: social graph settings"
-        path.startsWith("shared_prefs/ai_settings") -> "SangatAI: note settings"
-        path.startsWith("shared_prefs/persona") -> "SangatAI: writing persona"
+        path.startsWith("shared_prefs/${AiSettings.PREFS_NAME}") -> "SangatAI: model choice"
         path.startsWith("cache/") -> "Cache"
         path.startsWith("code_cache/") -> "Android runtime"
         path.startsWith("app_webview/") -> "WebView"
@@ -272,8 +269,8 @@ class AppDataManager @Inject constructor(
     }
 
     private companion object {
-        const val EXPORT_VERSION = 1
-        const val DATABASE_VERSION = 5
+        const val EXPORT_VERSION = 2
+        const val DATABASE_VERSION = 6
         const val DATATRANSPORT_DB = "com.google.android.datatransport.events"
     }
 }

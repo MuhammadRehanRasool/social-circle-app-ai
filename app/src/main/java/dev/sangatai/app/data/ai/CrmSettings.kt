@@ -23,7 +23,8 @@ data class CrmTuning(
     // Gemini Nano, ingestion: low temperature keeps the JSON shape.
     val ingestTemperature: Float = 0.2f,
     val ingestTopK: Int = 10,
-    val ingestMaxOutputTokens: Int = 384,
+    // Room for the links list on top of the people.
+    val ingestMaxOutputTokens: Int = 512,
 
     // Gemini Nano, "who can help".
     val askTemperature: Float = 0.1f,

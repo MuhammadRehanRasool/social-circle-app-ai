@@ -8,7 +8,10 @@ import kotlinx.coroutines.flow.Flow
 
 private const val PERSON_ROW_COLUMNS =
     "id, name, aliases_json, dynamic_tags_json, suppressed_tags_json, (embedding IS NOT NULL) AS has_embedding, " +
-        "created_by_user, created_at, last_interaction_at"
+        "created_by_user, created_at, last_interaction_at, relation_to_user, " +
+        "(SELECT f.label FROM relation_facts f WHERE f.person_a = people.id AND f.person_b IS NULL " +
+        "ORDER BY f.timestamp DESC, f.id DESC LIMIT 1) AS ai_relation, " +
+        "(SELECT COUNT(*) FROM interaction_logs l WHERE l.person_id = people.id) AS mention_count"
 
 @Dao
 interface PersonDao {
@@ -153,6 +156,57 @@ interface ConnectionDao {
 
     @Query("SELECT * FROM connections ORDER BY edge_id")
     suspend fun all(): List<ConnectionEntity>
+
+    /** Every edge, for the network graph. */
+    @Query("SELECT * FROM connections ORDER BY edge_id")
+    fun observeAll(): Flow<List<ConnectionEntity>>
+}
+
+@Dao
+interface RelationFactDao {
+
+    @Insert
+    suspend fun insert(fact: RelationFactEntity): Long
+
+    /** Facts between [personId] and other people, newest first. */
+    @Query(
+        """
+        SELECT CASE WHEN person_a = :personId THEN person_b ELSE person_a END AS other_id, label
+        FROM relation_facts
+        WHERE (person_a = :personId AND person_b IS NOT NULL) OR person_b = :personId
+        ORDER BY timestamp DESC, id DESC
+        """
+    )
+    suspend fun pairFactsFor(personId: Long): List<FactRow>
+
+    @Query("SELECT * FROM relation_facts WHERE capture_id = :captureId ORDER BY id")
+    suspend fun forCapture(captureId: Long): List<RelationFactEntity>
+
+    /** The people on the other side of [personId]'s facts from one rant, before those facts go. */
+    @Query(
+        """
+        SELECT DISTINCT CASE WHEN person_a = :personId THEN person_b ELSE person_a END
+        FROM relation_facts
+        WHERE capture_id = :captureId AND person_b IS NOT NULL AND (person_a = :personId OR person_b = :personId)
+        """
+    )
+    suspend fun partnersIn(captureId: Long, personId: Long): List<Long>
+
+    @Query("DELETE FROM relation_facts WHERE capture_id = :captureId AND (person_a = :personId OR person_b = :personId)")
+    suspend fun deleteFor(captureId: Long, personId: Long)
+
+    // Merging: point the dropped person's facts at the kept one, then drop facts that became self-loops.
+    @Query("UPDATE relation_facts SET person_a = :to WHERE person_a = :from")
+    suspend fun reassignA(from: Long, to: Long)
+
+    @Query("UPDATE relation_facts SET person_b = :to WHERE person_b = :from")
+    suspend fun reassignB(from: Long, to: Long)
+
+    @Query("DELETE FROM relation_facts WHERE person_a = person_b")
+    suspend fun deleteSelfLoops()
+
+    @Query("SELECT * FROM relation_facts ORDER BY id")
+    suspend fun all(): List<RelationFactEntity>
 }
 
 @Dao
@@ -170,8 +224,16 @@ interface CaptureDao {
     @Query("SELECT id FROM captures WHERE status = 'PENDING' ORDER BY created_at ASC, id ASC")
     suspend fun pendingIds(): List<Long>
 
-    @Query("SELECT * FROM captures ORDER BY created_at DESC, id DESC")
-    fun observeAll(): Flow<List<CaptureEntity>>
+    @Query(
+        """
+        SELECT c.id, c.raw_text, c.status, c.attempts, c.last_error, c.summary, c.mention_count, c.created_at,
+            (SELECT group_concat(p.name, char(31)) FROM interaction_logs l JOIN people p ON p.id = l.person_id
+             WHERE l.capture_id = c.id) AS people_names
+        FROM captures c
+        ORDER BY c.created_at DESC, c.id DESC
+        """
+    )
+    fun observeRows(): Flow<List<CaptureRow>>
 
     @Query(
         "UPDATE captures SET status = 'PENDING', attempts = 0, last_error = NULL, updated_at = :now " +
