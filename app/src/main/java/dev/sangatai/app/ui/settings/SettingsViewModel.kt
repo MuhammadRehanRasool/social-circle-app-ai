@@ -42,9 +42,25 @@ class SettingsViewModel @Inject constructor(
     val legacyNotes: StateFlow<Int> = data.observeLegacyNoteCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    fun saveTuning(value: CrmTuning) = crmSettings.set(value)
+    fun saveTuning(value: CrmTuning) {
+        val before = crmSettings.tuning.value
+        crmSettings.set(value)
+        reembedIfNeeded(before)
+    }
 
-    fun resetTuning() = crmSettings.reset()
+    fun resetTuning() {
+        val before = crmSettings.tuning.value
+        crmSettings.reset()
+        reembedIfNeeded(before)
+    }
+
+    /** Vectors are built from the strongest tags, so changing how many or how fast they fade makes them stale. */
+    private fun reembedIfNeeded(before: CrmTuning) {
+        val after = crmSettings.tuning.value
+        if (before.embedTags != after.embedTags || before.tagHalfLifeDays != after.tagHalfLifeDays) {
+            appScope.launch { people.reembedAll() }
+        }
+    }
 
     fun setUsePreviewModel(enabled: Boolean) {
         if (aiSettings.usePreviewModel.value == enabled) return

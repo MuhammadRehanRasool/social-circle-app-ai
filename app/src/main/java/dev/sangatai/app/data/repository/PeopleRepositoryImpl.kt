@@ -43,8 +43,10 @@ import dev.sangatai.app.domain.model.PersonMatch
 import dev.sangatai.app.domain.model.PersonTag
 import dev.sangatai.app.domain.model.SocialGraph
 import dev.sangatai.app.domain.repository.PeopleRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -78,17 +80,21 @@ class PeopleRepositoryImpl @Inject constructor(
 
     // ---------------------------------------------------------------- reading
 
+    // Room re-runs a query on every write to any table it reads, even when the result is the same
+    // (re-embedding touches every person row). distinctUntilChanged drops those repeats before
+    // any mapping, so the screens and the graph layout only see real changes.
+
     override fun observePeople(): Flow<List<Person>> =
-        people.observeAll().map { rows -> rows.map { it.toDomain(now(), tuning) } }
+        people.observeAll().distinctUntilChanged().map { rows -> rows.map { it.toDomain(now(), tuning) } }
 
     override fun observeRecentPeople(limit: Int): Flow<List<Person>> =
-        people.observeRecent(limit).map { rows -> rows.map { it.toDomain(now(), tuning) } }
+        people.observeRecent(limit).distinctUntilChanged().map { rows -> rows.map { it.toDomain(now(), tuning) } }
 
     override fun observePerson(personId: Long): Flow<PersonDetail?> =
         combine(
-            people.observe(personId),
-            logs.observeForPerson(personId),
-            edges.observeForPerson(personId),
+            people.observe(personId).distinctUntilChanged(),
+            logs.observeForPerson(personId).distinctUntilChanged(),
+            edges.observeForPerson(personId).distinctUntilChanged(),
         ) { row, interactions, connections ->
             row?.let {
                 PersonDetail(
@@ -100,7 +106,7 @@ class PeopleRepositoryImpl @Inject constructor(
         }
 
     override fun observeGraph(): Flow<SocialGraph> =
-        combine(people.observeAll(), edges.observeAll()) { rows, edgeRows ->
+        combine(people.observeAll().distinctUntilChanged(), edges.observeAll().distinctUntilChanged()) { rows, edgeRows ->
             val at = now()
             val crm = tuning
             SocialGraph(
@@ -117,7 +123,7 @@ class PeopleRepositoryImpl @Inject constructor(
         }
 
     override fun observeCaptures(): Flow<List<Capture>> =
-        captures.observeRows().map { rows -> rows.map { it.toDomain() } }
+        captures.observeRows().distinctUntilChanged().map { rows -> rows.map { it.toDomain() } }
 
     // ---------------------------------------------------------------- ingestion
 
@@ -178,9 +184,17 @@ class PeopleRepositoryImpl @Inject constructor(
                     // Gemini Nano runs outside any transaction; it can take seconds.
                     val extraction = ai.extractMentions(capture.rawText, crm)
                     graphMutex.withLock {
-                        val ops = db.withTransaction { applyExtraction(capture, extraction, crm) }
+                        val ops = db.withTransaction {
+                            // Deleted (or wiped) while Gemini Nano was reading it: writing its
+                            // interactions now would break their foreign key to the rant.
+                            val current = captures.get(capture.id)
+                            if (current?.status != CaptureStatus.PENDING) emptyList<IndexOp>()
+                            else applyExtraction(current, extraction, crm)
+                        }
                         applyIndex(ops)
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (e: SplitException.Deferred) {
                     // Every other queued rant would hit the same wall; wait for the next foreground.
                     captures.update(capture.copy(lastError = e.message, updatedAt = now()))
@@ -196,6 +210,19 @@ class PeopleRepositoryImpl @Inject constructor(
                             updatedAt = now(),
                         )
                     )
+                } catch (e: Exception) {
+                    // Anything else (a bad row, a library bug) fails this rant, not the whole app;
+                    // it stays saved and can be retried from the history.
+                    captures.get(capture.id)?.takeIf { it.status == CaptureStatus.PENDING }?.let {
+                        captures.update(
+                            it.copy(
+                                status = CaptureStatus.FAILED,
+                                attempts = it.attempts + 1,
+                                lastError = e.message ?: e.javaClass.simpleName,
+                                updatedAt = now(),
+                            )
+                        )
+                    }
                 }
             }
             batch = captures.pendingIds().filterNot { it in handled }
@@ -414,13 +441,17 @@ class PeopleRepositoryImpl @Inject constructor(
         // Walks forward by id, so a row the embedder can't handle is skipped instead of retried forever.
         var batch = people.needingEmbedding(embedder.modelId, afterId, EMBED_BATCH)
         while (batch.isNotEmpty()) {
-            for (person in batch) {
-                afterId = person.id
+            // Embedded outside the database, then written as one transaction: one change
+            // notification per batch instead of one per person.
+            val results = batch.mapNotNull { person ->
                 val (row, op) = withEmbedding(person, crm, now())
-                if (row.embeddingModel == null) continue
-                people.update(row.copy(updatedAt = person.updatedAt))
-                applyIndex(listOf(op.copy(personId = person.id)))
-                done++
+                if (row.embeddingModel == null) null else row.copy(updatedAt = person.updatedAt) to op.copy(personId = person.id)
+            }
+            afterId = batch.last().id
+            if (results.isNotEmpty()) {
+                db.withTransaction { results.forEach { people.update(it.first) } }
+                applyIndex(results.map { it.second })
+                done += results.size
             }
             batch = people.needingEmbedding(embedder.modelId, afterId, EMBED_BATCH)
         }
@@ -595,7 +626,8 @@ class PeopleRepositoryImpl @Inject constructor(
                 val person = people.get(personId) ?: return@withTransaction emptyList<IndexOp>()
                 people.update(person.copy(suppressedTags = person.suppressedTags - tag, updatedAt = now()))
                 // Brings back whatever past rants said about this tag.
-                listOfNotNull(rebuildPerson(personId, tuning))
+                // Never deletes them: the user is editing this person right now.
+                listOfNotNull(rebuildPerson(personId, tuning, deleteIfOrphan = false))
             }
             applyIndex(ops)
         }
@@ -642,6 +674,18 @@ class PeopleRepositoryImpl @Inject constructor(
                 val labeled = edges.forPerson(dropId).filter { it.relation.labels.isNotEmpty() }
 
                 logs.reassign(dropId, keepId)
+                // Both named in one rant: that's one interaction for the merged person, with
+                // both names' tags, as if the rant had been read after the merge.
+                logs.forPerson(keepId)
+                    .filter { it.captureId != null }
+                    .groupBy { it.captureId }
+                    .values
+                    .filter { it.size > 1 }
+                    .forEach { same ->
+                        val first = same.first()
+                        logs.setTagsAdded(first.id, StringSet(same.flatMapTo(LinkedHashSet()) { it.tagsAdded.values }))
+                        same.drop(1).forEach { logs.deleteById(it.id) }
+                    }
                 // Relations heard about either now belong to the kept person; one between the two goes.
                 facts.reassignA(dropId, keepId)
                 facts.reassignB(dropId, keepId)

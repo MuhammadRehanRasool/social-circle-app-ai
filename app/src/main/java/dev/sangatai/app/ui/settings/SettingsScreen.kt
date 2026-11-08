@@ -241,7 +241,7 @@ private fun SettingsScreen(
                             )
                             SettingRow(
                                 title = "Rebuild search index",
-                                subtitle = "Re-embeds everyone's tags. Needed after changing tag fade or tags embedded.",
+                                subtitle = "Re-embeds everyone's tags. Happens on its own when tag fade or tags in search change.",
                                 onClick = {
                                     viewModel.reembedAll { count ->
                                         Toast.makeText(context, "Re-embedded $count people", Toast.LENGTH_SHORT).show()

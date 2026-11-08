@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -91,11 +92,19 @@ fun NetworkGraph(
 
     val currentSelected by rememberUpdatedState(selectedId)
     val currentVisible by rememberUpdatedState(visibleGroups)
+    // The gesture handler outlives compositions, so it must read the latest groups, not the first.
+    val currentGroups by rememberUpdatedState(groups)
     val currentOnSelect by rememberUpdatedState(onSelect)
     val currentOnOpen by rememberUpdatedState(onOpen)
 
-    LaunchedEffect(graph) {
-        sim.update(graph, System.currentTimeMillis())
+    // Only what moves nodes: who's there, how close they are, and the ties. A new tag or a
+    // rename changes the graph but not the layout, so it doesn't shake everyone around.
+    val layoutKey = remember(graph) {
+        graph.people.map { Triple(it.id, it.lastInteractionAt, it.mentionCount) } to graph.edges
+    }
+    val currentGraph by rememberUpdatedState(graph)
+    LaunchedEffect(layoutKey) {
+        sim.update(currentGraph, System.currentTimeMillis())
         frame++
     }
     LaunchedEffect(sim) {
@@ -127,8 +136,13 @@ fun NetworkGraph(
 
     fun isVisible(i: Int): Boolean {
         if (i == 0) return true
-        val group = groups[sim.ids[i]] ?: RelationGroup.UNKNOWN
+        val group = currentGroups[sim.ids[i]] ?: RelationGroup.UNKNOWN
         return group in currentVisible
+    }
+    // Not named `density`: that would shadow the Float the draw and gesture scopes use.
+    val screenDensity = LocalDensity.current
+    val dash = remember(screenDensity) {
+        with(screenDensity) { PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 8.dp.toPx())) }
     }
 
     Canvas(
@@ -145,7 +159,9 @@ fun NetworkGraph(
                     val slop = viewConfiguration.touchSlop
 
                     if (hit != null && hit > 0) {
-                        // Drag a person, or tap them.
+                        // Drag a person, or tap them. Followed by id: if the graph updates
+                        // mid-drag, indices shift and the person may even be gone.
+                        val id = sim.ids[hit]
                         var moved = false
                         sim.pin(hit)
                         while (true) {
@@ -154,17 +170,18 @@ fun NetworkGraph(
                             if (!change.pressed) break
                             if (!moved && (change.position - down.position).getDistance() > slop) moved = true
                             if (moved) {
+                                val index = sim.indexOf(id) ?: break
                                 val delta = change.positionChange()
                                 val scaleNow = worldScale(canvasSize, density, userScale)
-                                sim.moveBy(hit, delta.x / scaleNow, delta.y / scaleNow)
+                                sim.pin(index)
+                                sim.moveBy(index, delta.x / scaleNow, delta.y / scaleNow)
                                 sim.reheat(0.25f)
                                 change.consume()
                             }
                         }
                         sim.pin(-1)
                         sim.reheat(0.15f)
-                        if (!moved) {
-                            val id = sim.ids[hit]
+                        if (!moved && sim.indexOf(id) != null) {
                             if (currentSelected == id) currentOnOpen(id) else currentOnSelect(id)
                         }
                     } else {
@@ -213,7 +230,6 @@ fun NetworkGraph(
         }
 
         // Orbits: how close people are to the user.
-        val dash = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 8.dp.toPx()))
         for (r in ORBITS) {
             drawCircle(
                 color = scheme.outlineVariant.copy(alpha = 0.35f),

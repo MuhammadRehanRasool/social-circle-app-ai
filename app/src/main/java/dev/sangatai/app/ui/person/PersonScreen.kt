@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -132,6 +133,7 @@ private object Dialogs {
 @Composable
 fun PersonScreen(detail: PersonDetail, everyone: List<Person>, actions: PersonActions) {
     val person = detail.person
+    val byId = remember(everyone) { everyone.associateBy { it.id } }
     var dialog by rememberSaveable { mutableStateOf<String?>(null) }
     val close = { dialog = null }
 
@@ -216,7 +218,7 @@ fun PersonScreen(detail: PersonDetail, everyone: List<Person>, actions: PersonAc
                             detail.connections.forEach { connection ->
                                 ConnectionRow(
                                     connection = connection,
-                                    relation = everyone.firstOrNull { it.id == connection.otherId }?.relation,
+                                    relation = byId[connection.otherId]?.relation,
                                     onOpen = { actions.onOpenPerson(connection.otherId) },
                                     onEdit = { dialog = Dialogs.LABELS + connection.otherId },
                                 )
@@ -330,7 +332,7 @@ fun PersonScreen(detail: PersonDetail, everyone: List<Person>, actions: PersonAc
 
         open.startsWith(Dialogs.NEW_LINK) || open.startsWith(Dialogs.LABELS) -> {
             val otherId = open.substringAfter(':').toLongOrNull()
-            val other = otherId?.let { id -> everyone.firstOrNull { it.id == id } }
+            val other = otherId?.let(byId::get)
             if (other == null) {
                 LaunchedEffect(open) { close() }
                 return

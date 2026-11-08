@@ -67,12 +67,14 @@ class HomeViewModel @Inject constructor(
 
     /** Gemini Nano only serves the app while it's on screen, so this is where the queue drains. */
     fun onForeground() {
+        // warmUp() follows a model download to the end, so the queue drains once it's ready.
         viewModelScope.launch {
             ai.warmUp()
             people.drainPending()
-            // Vectors missing or from another model. In-process, so it doesn't need Nano.
-            people.reembedStale()
         }
+        // Vectors missing or from another model. In-process and doesn't need Nano, so it
+        // mustn't wait behind a download that can take minutes.
+        viewModelScope.launch { people.reembedStale() }
     }
 
     /** Runs in the app scope, so leaving the screen never loses what was said. */
